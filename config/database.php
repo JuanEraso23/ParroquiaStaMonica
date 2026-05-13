@@ -8,21 +8,21 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'default' => 'mariadb',
+    'default' => env('DB_CONNECTION', 'mysql'),
 
     /*
     |--------------------------------------------------------------------------
-    | Conexión Base de Datos
+    | Conexiones de Base de Datos
     |--------------------------------------------------------------------------
     */
 
     'connections' => [
 
-        'mariadb' => [
+        'mysql' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'parroquia_santa_monica'),
+            'database' => env('DB_DATABASE', 'ParroquiaStaMonica'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'charset' => 'utf8mb4',
