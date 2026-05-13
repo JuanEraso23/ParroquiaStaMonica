@@ -1,0 +1,50 @@
+/* Tabla de usuarios */
+.usuarios-tabla {
+    min-width: 100%;
+}
+
+.usuarios-tabla thead {
+    background-color: #f9fafb;
+}
+
+.usuarios-tabla th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.usuarios-tabla td {
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+}
+
+/* Badges de roles */
+.role-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.role-parroco {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+.role-vicario {
+    background-color: #fffbeb;
+    color: #d97706;
+}
+
+.role-secretaria {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+}
+
+.role-feligres {
+    background-color: #f3e8ff;
+    color: #9333ea;
+}

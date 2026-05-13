@@ -1,0 +1,17 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Componentes */
+@import './components/sidebar.css';
+@import './components/footer.css';
+@import './components/dashboard.css';
+
+/* Páginas */
+@import './pages/usuarios.css';
+
+/* Estilos globales adicionales */
+body {
+    font-family: 'Figtree', sans-serif;
+    background-color: #f3f4f6;
+}

@@ -1,0 +1,62 @@
+/* Dashboard estadísticas */
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+/* Listados */
+.list-item {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 0;
+}
+
+.list-item:last-child {
+    border-bottom: none;
+}
+
+/* Badges */
+.badge-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+}
+
+.badge-confirmed {
+    background-color: #d1fae5;
+    color: #059669;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+}
+
+#searchInput, #sacerdoteFilter, #fechaFilter {
+    transition: all 0.2s ease;
+}
+
+#searchInput:focus, #sacerdoteFilter:focus, #fechaFilter:focus {
+    border-color: #8b5cf6;
+    ring: 2px solid rgba(139, 92, 246, 0.2);
+}
+
+#limpiarFiltros {
+    cursor: pointer;
+}
+
+.cita-item {
+    transition: all 0.2s ease;
+}
