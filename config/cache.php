@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Str;
-
 return [
 
     /*
@@ -10,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'default' => 'database',
+    'default' => env('CACHE_STORE', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -25,14 +23,14 @@ return [
             'serialize' => false,
         ],
 
-        'database' => [
-            'driver' => 'database',
-            'table' => 'cache',
-        ],
-
         'file' => [
             'driver' => 'file',
             'path' => storage_path('framework/cache/data'),
+        ],
+
+        'database' => [
+            'driver' => 'database',
+            'table' => 'cache',
         ],
 
     ],
@@ -43,6 +41,6 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'prefix' => Str::slug('parroquia-santa-monica') . '-cache',
+    'prefix' => 'parroquia-santa-monica-cache',
 
 ];
