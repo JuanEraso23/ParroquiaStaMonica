@@ -95,7 +95,7 @@
 
                         <div>
                             <label for="hora" class="block text-sm font-medium text-gray-700 mb-1">
-                                Hora *
+                                Hora de inicio *
                             </label>
                             <input
                                 type="time"
@@ -136,6 +136,40 @@
                             </option>
                         </select>
                         @error('tipo')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Duración --}}
+                    <div>
+                        <label for="duracion_minutos" class="block text-sm font-medium text-gray-700 mb-1">
+                            Duración *
+                        </label>
+
+                        <select
+                            name="duracion_minutos"
+                            id="duracion_minutos"
+                            class="w-full rounded-lg border-gray-300 @error('duracion_minutos') border-red-500 @enderror"
+                            required
+                        >
+                            <option value="10" {{ old('duracion_minutos', $cita->duracion_minutos) == '10' ? 'selected' : '' }}>
+                                10 minutos - Confesión
+                            </option>
+
+                            <option value="15" {{ old('duracion_minutos', $cita->duracion_minutos) == '15' ? 'selected' : '' }}>
+                                15 minutos - Cita breve
+                            </option>
+
+                            <option value="20" {{ old('duracion_minutos', $cita->duracion_minutos) == '20' ? 'selected' : '' }}>
+                                20 minutos - Cita normal
+                            </option>
+
+                            <option value="30" {{ old('duracion_minutos', $cita->duracion_minutos) == '30' ? 'selected' : '' }}>
+                                30 minutos - Cita extensa
+                            </option>
+                        </select>
+
+                        @error('duracion_minutos')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>

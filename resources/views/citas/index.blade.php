@@ -115,14 +115,21 @@
                 <div class="border rounded-lg p-4 bg-white hover:shadow-md transition">
                     <div class="flex justify-between items-start">
                         <div>
+
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-lg font-semibold text-gray-800">
-                                    {{ $cita->fecha->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($cita->hora)->format('g:i A') }}
+                                    {{ $cita->fecha->format('d/m/Y') }} - {{ $cita->horario_completo }}
                                 </span>
+
                                 <span class="px-2 py-1 text-xs rounded-full {{ $cita->estado_badge }}">
                                     {{ ucfirst($cita->estado) }}
                                 </span>
                             </div>
+
+                            <span class="text-xs text-blue-600 block mt-1">
+                                Duración: {{ $cita->duracion_minutos }} minutos
+                            </span>
+
 
                             {{-- Información del feligrés solo para admin --}}
                             @if($esAdmin)
