@@ -45,6 +45,42 @@ class CitaController extends Controller
             ->exists();
     }
 
+    private function obtenerHorariosDisponibles($sacerdoteId, $fecha)
+    {
+        $inicioJornada = Carbon::parse('15:00');
+        $finJornada = Carbon::parse('18:00');
+
+        $duracionSlot = 15; // bloques base
+
+        $horarios = [];
+
+        while ($inicioJornada < $finJornada) {
+
+            $horaInicio = $inicioJornada->format('H:i:s');
+            $horaFin = $inicioJornada->copy()->addMinutes($duracionSlot)->format('H:i:s');
+
+            $ocupado = Cita::where('sacerdote_id', $sacerdoteId)
+                ->whereDate('fecha', $fecha)
+                ->where('estado', '!=', 'cancelada')
+                ->where(function ($query) use ($horaInicio, $horaFin) {
+                    $query->where('hora', '<', $horaFin)
+                        ->where('hora_fin', '>', $horaInicio);
+                })
+                ->exists();
+
+            $horarios[] = [
+                'hora_inicio' => $horaInicio,
+                'hora_fin' => $horaFin,
+                'ocupado' => $ocupado
+            ];
+
+            $inicioJornada->addMinutes($duracionSlot);
+        }
+
+        return $horarios;
+    }
+
+
     /**
      * Muestra el listado de citas.
      * - Admin: ve todas las citas.
@@ -121,7 +157,7 @@ class CitaController extends Controller
      * - Admin: puede seleccionar cualquier feligrés.
      * - Feligres: solo puede crear cita para sí mismo.
      */
-    public function create()
+    public function create(Request $request)
     {
         $usuario = Auth::user();
 
@@ -130,8 +166,6 @@ class CitaController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Para reutilizar la vista actual sin romperla:
-            // el feligrés solo tendrá disponible su propio registro.
             $feligreses = User::where('id', $usuario->id)->get();
         }
 
@@ -139,8 +173,34 @@ class CitaController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('citas.create', compact('feligreses', 'sacerdotes'));
+        $sacerdoteSeleccionado = $request->input(
+            'sacerdote_id',
+            $sacerdotes->first()->id ?? null
+        );
+
+        $fechaSeleccionada = $request->input(
+            'fecha',
+            now()->toDateString()
+        );
+
+        $horarios = [];
+
+        if ($sacerdoteSeleccionado && $fechaSeleccionada) {
+            $horarios = $this->obtenerHorariosDisponibles(
+                $sacerdoteSeleccionado,
+                $fechaSeleccionada
+            );
+        }
+
+        return view('citas.create', compact(
+            'feligreses',
+            'sacerdotes',
+            'horarios',
+            'sacerdoteSeleccionado',
+            'fechaSeleccionada'
+        ));
     }
+
 
     /**
      * Guarda una nueva cita.

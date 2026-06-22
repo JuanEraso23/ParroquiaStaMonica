@@ -72,7 +72,7 @@
                         >
                             <option value="">Seleccione un sacerdote</option>
                             @foreach($sacerdotes as $sacerdote)
-                                <option value="{{ $sacerdote->id }}" {{ old('sacerdote_id') == $sacerdote->id ? 'selected' : '' }}>
+                                <option value="{{ $sacerdote->id }}" {{ old('sacerdote_id', $sacerdoteSeleccionado ?? '') == $sacerdote->id ? 'selected' : '' }}>
                                     {{ $sacerdote->nombre_completo }} ({{ $sacerdote->cargo ?? $sacerdote->rol_texto }})
                                 </option>
                             @endforeach
@@ -92,7 +92,7 @@
                                 type="date"
                                 name="fecha"
                                 id="fecha"
-                                value="{{ old('fecha') }}"
+                                value="{{ old('fecha', $fechaSeleccionada ?? '') }}"
                                 class="w-full rounded-lg border-gray-300 @error('fecha') border-red-500 @enderror"
                                 required
                             >
@@ -197,6 +197,41 @@
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+                    {{-- Horarios sugeridos --}}
+                    @if(!empty($horarios))
+                        <div class="mt-6 pt-4 border-t">
+                            <h3 class="text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-clock mr-1"></i>
+                                Horarios disponibles
+                            </h3>
+
+                            <p class="text-xs text-gray-500 mb-3">
+                                Selecciona un horario disponible. Los horarios ocupados aparecen en rojo.
+                            </p>
+
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                @foreach($horarios as $h)
+                                    <button
+                                        type="button"
+                                        data-hora="{{ \Carbon\Carbon::parse($h['hora_inicio'])->format('H:i') }}"
+                                        class="slot-horario px-3 py-2 rounded-lg text-xs text-center transition
+                                            {{ $h['ocupado']
+                                                ? 'bg-red-100 text-red-600 cursor-not-allowed opacity-70'
+                                                : 'bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer' }}"
+                                        {{ $h['ocupado'] ? 'disabled' : '' }}
+                                    >
+                                        <div class="font-semibold">
+                                            {{ \Carbon\Carbon::parse($h['hora_inicio'])->format('g:i A') }}
+                                        </div>
+
+                                        <div>
+                                            {{ $h['ocupado'] ? 'Ocupado' : 'Disponible' }}
+                                        </div>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Notas internas: SOLO ADMIN --}}
                     @if($esAdmin)
@@ -240,4 +275,53 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const botonesHorario = document.querySelectorAll('.slot-horario');
+        const inputHora = document.getElementById('hora');
+        const selectSacerdote = document.getElementById('sacerdote_id');
+        const inputFecha = document.getElementById('fecha');
+
+        botonesHorario.forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                if (boton.disabled) {
+                    return;
+                }
+
+                const hora = boton.getAttribute('data-hora');
+
+                if (inputHora) {
+                    inputHora.value = hora;
+                }
+
+                botonesHorario.forEach(function (b) {
+                    b.classList.remove('ring-2', 'ring-green-500', 'bg-green-200');
+                });
+
+                boton.classList.add('ring-2', 'ring-green-500', 'bg-green-200');
+            });
+        });
+
+        function actualizarHorarios() {
+            const sacerdoteId = selectSacerdote ? selectSacerdote.value : '';
+            const fecha = inputFecha ? inputFecha.value : '';
+
+            if (sacerdoteId && fecha) {
+                const url = "{{ route('citas.create') }}"
+                    + "?sacerdote_id=" + encodeURIComponent(sacerdoteId)
+                    + "&fecha=" + encodeURIComponent(fecha);
+
+                window.location.href = url;
+            }
+        }
+
+        if (selectSacerdote) {
+            selectSacerdote.addEventListener('change', actualizarHorarios);
+        }
+
+        if (inputFecha) {
+            inputFecha.addEventListener('change', actualizarHorarios);
+        }
+    });
+</script>
 @endsection
