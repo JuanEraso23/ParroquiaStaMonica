@@ -6,6 +6,7 @@ use App\Models\Cita;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class CitaController extends Controller
 {
@@ -15,6 +16,33 @@ class CitaController extends Controller
     private function esAdmin(): bool
     {
         return Auth::check() && Auth::user()->esAdministrador();
+    }
+
+
+    private function calcularHoraFin(string $horaInicio, int $duracionMinutos): string
+    {
+        return Carbon::parse($horaInicio)
+            ->addMinutes($duracionMinutos)
+            ->format('H:i:s');
+    }
+    private function existeCruceHorario(
+        int $sacerdoteId,
+        string $fecha,
+        string $horaInicio,
+        string $horaFin,
+        ?int $citaId = null
+    ): bool {
+        return Cita::where('sacerdote_id', $sacerdoteId)
+            ->whereDate('fecha', $fecha)
+            ->where('estado', '!=', 'cancelada')
+            ->when($citaId, function ($query) use ($citaId) {
+                $query->where('id', '!=', $citaId);
+            })
+            ->where(function ($query) use ($horaInicio, $horaFin) {
+                $query->where('hora', '<', $horaFin)
+                    ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
     }
 
     /**
@@ -127,7 +155,8 @@ class CitaController extends Controller
         $rules = [
             'sacerdote_id' => 'required|exists:users,id',
             'fecha' => 'required|date',
-            'hora' => 'required',
+            'hora' => 'required|date_format:H:i',
+            'duracion_minutos' => 'required|integer|in:10,15,20,30',
             'tipo' => 'required|in:confesion,bautismo,matrimonio,orientacion',
             'descripcion' => 'nullable|string',
         ];
@@ -149,20 +178,23 @@ class CitaController extends Controller
             unset($validated['notas_internas']);
         }
 
-        // Verificar si ya existe una cita en la misma fecha y hora
-        // (cualquier estado excepto cancelada)
-        $citaExistente = Cita::where('fecha', $request->fecha)
-            ->where('hora', $request->hora)
-            ->where('estado', '!=', 'cancelada')
-            ->first();
+        $horaInicio = $validated['hora'];
+        $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
 
-        if ($citaExistente) {
+        if ($this->existeCruceHorario(
+            (int) $validated['sacerdote_id'],
+            $validated['fecha'],
+            $horaInicio,
+            $horaFin
+        )) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'hora' => 'Ya existe una cita programada en esta fecha y hora (estado: ' . $citaExistente->estado . '). Por favor seleccione otro horario.'
+                    'hora' => 'El sacerdote ya tiene una cita programada dentro de ese rango horario. Por favor seleccione otro horario.'
                 ]);
         }
+
+        $validated['hora_fin'] = $horaFin;
 
         // Siempre inicia como pendiente
         $validated['estado'] = 'pendiente';
@@ -208,28 +240,31 @@ class CitaController extends Controller
             'feligres_id' => 'required|exists:users,id',
             'sacerdote_id' => 'required|exists:users,id',
             'fecha' => 'required|date',
-            'hora' => 'required',
+            'hora' => 'required|date_format:H:i',
+            'duracion_minutos' => 'required|integer|in:10,15,20,30',
             'tipo' => 'required|in:confesion,bautismo,matrimonio,orientacion',
             'descripcion' => 'nullable|string',
             'estado' => 'required|in:pendiente,confirmada,cancelada,completada',
             'notas_internas' => 'nullable|string',
         ]);
+        $horaInicio = $validated['hora'];
+        $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
 
-        // Verificar si ya existe OTRA cita en la misma fecha y hora
-        // (excluyendo la actual, cualquier estado excepto cancelada)
-        $citaExistente = Cita::where('fecha', $request->fecha)
-            ->where('hora', $request->hora)
-            ->where('id', '!=', $cita->id)
-            ->where('estado', '!=', 'cancelada')
-            ->first();
-
-        if ($citaExistente) {
+        if ($this->existeCruceHorario(
+            (int) $validated['sacerdote_id'],
+            $validated['fecha'],
+            $horaInicio,
+            $horaFin,
+            $cita->id
+        )) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'hora' => 'Ya existe otra cita programada en esta fecha y hora (estado: ' . $citaExistente->estado . '). Por favor seleccione otro horario.'
+                    'hora' => 'El sacerdote ya tiene otra cita programada dentro de ese rango horario. Por favor seleccione otro horario.'
                 ]);
         }
+
+        $validated['hora_fin'] = $horaFin;
 
         $cita->update($validated);
 
