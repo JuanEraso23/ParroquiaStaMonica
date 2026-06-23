@@ -25,6 +25,20 @@ class CitaController extends Controller
             ->addMinutes($duracionMinutos)
             ->format('H:i:s');
     }
+
+
+    private function estaDentroDeJornada(string $horaInicio, string $horaFin): bool
+    {
+        $inicioJornada = Carbon::parse('15:00:00');
+        $finJornada = Carbon::parse('18:00:00');
+
+        $inicio = Carbon::parse($horaInicio);
+        $fin = Carbon::parse($horaFin);
+
+        return $inicio->greaterThanOrEqualTo($inicioJornada)
+            && $fin->lessThanOrEqualTo($finJornada);
+    }
+
     private function existeCruceHorario(
         int $sacerdoteId,
         string $fecha,
@@ -241,6 +255,14 @@ class CitaController extends Controller
         $horaInicio = $validated['hora'];
         $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
 
+        if (!$this->estaDentroDeJornada($horaInicio, $horaFin)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'La cita debe estar dentro del horario de atención: 3:00 PM a 6:00 PM.'
+                ]);
+        }
+
         if ($this->existeCruceHorario(
             (int) $validated['sacerdote_id'],
             $validated['fecha'],
@@ -309,6 +331,14 @@ class CitaController extends Controller
         ]);
         $horaInicio = $validated['hora'];
         $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
+
+        if (!$this->estaDentroDeJornada($horaInicio, $horaFin)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'La cita debe estar dentro del horario de atención: 3:00 PM a 6:00 PM.'
+                ]);
+        }
 
         if ($this->existeCruceHorario(
             (int) $validated['sacerdote_id'],
