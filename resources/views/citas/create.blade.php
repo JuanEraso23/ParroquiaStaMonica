@@ -230,6 +230,11 @@
                                         <div>
                                             {{ $h['ocupado'] ? 'Ocupado' : 'Disponible' }}
                                         </div>
+                                        @if($h['ocupado'] && $esAdmin && !empty($h['feligres_nombre']))
+                                            <div class="mt-1 text-[11px] font-medium">
+                                                {{ $h['feligres_nombre'] }}
+                                            </div>
+                                        @endif
                                     </button>
                                 @endforeach
                             </div>

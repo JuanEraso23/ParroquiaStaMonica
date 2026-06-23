@@ -77,20 +77,24 @@ class CitaController extends Controller
             $horaInicio = $inicioJornada->format('H:i:s');
             $horaFin = $inicioJornada->copy()->addMinutes($duracionConsulta)->format('H:i:s');
 
-            $ocupado = Cita::where('sacerdote_id', $sacerdoteId)
+            $citaOcupada = Cita::with('feligres')
+                ->where('sacerdote_id', $sacerdoteId)
                 ->whereDate('fecha', $fecha)
                 ->where('estado', '!=', 'cancelada')
                 ->where(function ($query) use ($horaInicio, $horaFin) {
                     $query->where('hora', '<', $horaFin)
                         ->where('hora_fin', '>', $horaInicio);
                 })
-                ->exists();
+                ->first();
 
             $horarios[] = [
                 'hora_inicio' => $horaInicio,
                 'hora_fin' => $horaFin,
                 'duracion' => $duracionConsulta,
-                'ocupado' => $ocupado,
+                'ocupado' => $citaOcupada !== null,
+                'feligres_nombre' => $citaOcupada?->feligres?->nombre_completo,
+                'tipo_cita' => $citaOcupada?->tipo_texto,
+                'estado_cita' => $citaOcupada?->estado,
             ];
 
             $inicioJornada->addMinutes($intervaloEntreOpciones);
