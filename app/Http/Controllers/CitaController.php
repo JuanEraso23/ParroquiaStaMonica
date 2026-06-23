@@ -59,19 +59,23 @@ class CitaController extends Controller
             ->exists();
     }
 
-    private function obtenerHorariosDisponibles($sacerdoteId, $fecha)
+    private function obtenerHorariosDisponibles($sacerdoteId, $fecha, int $duracionConsulta = 20)
     {
-        $inicioJornada = Carbon::parse('15:00');
-        $finJornada = Carbon::parse('18:00');
+        if (!$sacerdoteId || !$fecha) {
+            return [];
+        }
 
-        $duracionSlot = 15; // bloques base
+        $inicioJornada = Carbon::parse('15:00:00');
+        $finJornada = Carbon::parse('18:00:00');
+
+        // Cada opción inicia cada 15 minutos
+        $intervaloEntreOpciones = 15;
 
         $horarios = [];
 
-        while ($inicioJornada < $finJornada) {
-
+        while ($inicioJornada->copy()->addMinutes($duracionConsulta)->lessThanOrEqualTo($finJornada)) {
             $horaInicio = $inicioJornada->format('H:i:s');
-            $horaFin = $inicioJornada->copy()->addMinutes($duracionSlot)->format('H:i:s');
+            $horaFin = $inicioJornada->copy()->addMinutes($duracionConsulta)->format('H:i:s');
 
             $ocupado = Cita::where('sacerdote_id', $sacerdoteId)
                 ->whereDate('fecha', $fecha)
@@ -85,10 +89,11 @@ class CitaController extends Controller
             $horarios[] = [
                 'hora_inicio' => $horaInicio,
                 'hora_fin' => $horaFin,
-                'ocupado' => $ocupado
+                'duracion' => $duracionConsulta,
+                'ocupado' => $ocupado,
             ];
 
-            $inicioJornada->addMinutes($duracionSlot);
+            $inicioJornada->addMinutes($intervaloEntreOpciones);
         }
 
         return $horarios;
@@ -171,7 +176,7 @@ class CitaController extends Controller
      * - Admin: puede seleccionar cualquier feligrés.
      * - Feligres: solo puede crear cita para sí mismo.
      */
-    public function create(Request $request)
+   public function create(Request $request)
     {
         $usuario = Auth::user();
 
@@ -197,12 +202,15 @@ class CitaController extends Controller
             now()->toDateString()
         );
 
+        $duracionSeleccionada = (int) $request->input('duracion_minutos', 20);
+
         $horarios = [];
 
         if ($sacerdoteSeleccionado && $fechaSeleccionada) {
             $horarios = $this->obtenerHorariosDisponibles(
                 $sacerdoteSeleccionado,
-                $fechaSeleccionada
+                $fechaSeleccionada,
+                $duracionSeleccionada
             );
         }
 
@@ -211,10 +219,10 @@ class CitaController extends Controller
             'sacerdotes',
             'horarios',
             'sacerdoteSeleccionado',
-            'fechaSeleccionada'
+            'fechaSeleccionada',
+            'duracionSeleccionada'
         ));
     }
-
 
     /**
      * Guarda una nueva cita.

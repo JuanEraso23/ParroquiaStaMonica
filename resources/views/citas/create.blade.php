@@ -154,19 +154,19 @@
                         >
                             <option value="">Seleccione la duración</option>
 
-                            <option value="10" {{ old('duracion_minutos') == '10' ? 'selected' : '' }}>
+                            <option value="10" {{ old('duracion_minutos', $duracionSeleccionada ?? '') == '10' ? 'selected' : '' }}>
                                 10 minutos - Confesión
                             </option>
 
-                            <option value="15" {{ old('duracion_minutos') == '15' ? 'selected' : '' }}>
+                            <option value="15" {{ old('duracion_minutos', $duracionSeleccionada ?? '') == '15' ? 'selected' : '' }}>
                                 15 minutos - Cita breve
                             </option>
 
-                            <option value="20" {{ old('duracion_minutos') == '20' ? 'selected' : '' }}>
+                            <option value="20" {{ old('duracion_minutos', $duracionSeleccionada ?? '') == '20' ? 'selected' : '' }}>
                                 20 minutos - Cita normal
                             </option>
 
-                            <option value="30" {{ old('duracion_minutos') == '30' ? 'selected' : '' }}>
+                            <option value="30" {{ old('duracion_minutos', $duracionSeleccionada ?? '') == '30' ? 'selected' : '' }}>
                                 30 minutos - Cita extensa
                             </option>
                         </select>
@@ -206,7 +206,8 @@
                             </h3>
 
                             <p class="text-xs text-gray-500 mb-3">
-                                Selecciona un horario disponible. Los horarios ocupados aparecen en rojo.
+                                Disponibilidad calculada para citas de {{ $duracionSeleccionada ?? 20 }} minutos.
+                                Los horarios ocupados aparecen en rojo.
                             </p>
 
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -222,6 +223,8 @@
                                     >
                                         <div class="font-semibold">
                                             {{ \Carbon\Carbon::parse($h['hora_inicio'])->format('g:i A') }}
+                                            -
+                                            {{ \Carbon\Carbon::parse($h['hora_fin'])->format('g:i A') }}
                                         </div>
 
                                         <div>
@@ -281,6 +284,7 @@
         const inputHora = document.getElementById('hora');
         const selectSacerdote = document.getElementById('sacerdote_id');
         const inputFecha = document.getElementById('fecha');
+        const selectDuracion = document.getElementById('duracion_minutos');
 
         botonesHorario.forEach(function (boton) {
             boton.addEventListener('click', function () {
@@ -305,11 +309,13 @@
         function actualizarHorarios() {
             const sacerdoteId = selectSacerdote ? selectSacerdote.value : '';
             const fecha = inputFecha ? inputFecha.value : '';
+            const duracion = selectDuracion ? selectDuracion.value : '';
 
-            if (sacerdoteId && fecha) {
+            if (sacerdoteId && fecha && duracion) {
                 const url = "{{ route('citas.create') }}"
                     + "?sacerdote_id=" + encodeURIComponent(sacerdoteId)
-                    + "&fecha=" + encodeURIComponent(fecha);
+                    + "&fecha=" + encodeURIComponent(fecha)
+                    + "&duracion_minutos=" + encodeURIComponent(duracion);
 
                 window.location.href = url;
             }
@@ -321,6 +327,10 @@
 
         if (inputFecha) {
             inputFecha.addEventListener('change', actualizarHorarios);
+        }
+
+        if (selectDuracion) {
+            selectDuracion.addEventListener('change', actualizarHorarios);
         }
     });
 </script>
