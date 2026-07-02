@@ -1,24 +1,75 @@
-*.log
-.DS_Store
+# -----------------------------
+# Archivos de entorno / variables sensibles
+# -----------------------------
 .env
 .env.backup
 .env.production
-.phpactor.json
+.env.local
+.env.testing
+.env.staging
+.env.*.local
+
+# IMPORTANTE:
+# No agregar .env.example aquí.
+# El archivo .env.example sí debe subirse a GitHub para que el equipo sepa qué variables configurar.
+
+
+# -----------------------------
+# Logs y archivos temporales
+# -----------------------------
+*.log
 .phpunit.result.cache
+/.phpunit.cache
+.DS_Store
+Thumbs.db
+
+
+# -----------------------------
+# Editores e IDEs
+# -----------------------------
 /.fleet
 /.idea
 /.nova
-/.phpunit.cache
 /.vscode
 /.zed
-/auth.json
+.phpactor.json
+
+
+# -----------------------------
+# Dependencias
+# -----------------------------
 /node_modules
-# /public/build
+/vendor
+
+
+# -----------------------------
+# Archivos de autenticación o credenciales
+# -----------------------------
+/auth.json
+
+
+# -----------------------------
+# Archivos generados por Laravel
+# -----------------------------
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
+
+
+# -----------------------------
+# Build de Vite / assets compilados
+# -----------------------------
+# Si el hosting ejecutará npm install y npm run build, puedes ignorar public/build:
+# /public/build
+
+# Si el hosting NO compila assets, deja esta línea comentada para poder subir public/build.
+# Por ahora la dejamos comentada:
+# /public/build
+
+
+# -----------------------------
+# Homestead / entorno local Laravel
+# -----------------------------
 Homestead.json
 Homestead.yaml
-Thumbs.db
