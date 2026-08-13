@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Cita;
 use App\Models\Peticion;
-use App\Models\Intencion;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -29,13 +28,11 @@ class DashboardController extends Controller
         // Consultas base
         $citasQuery = Cita::query();
         $peticionesQuery = Peticion::query();
-        $intencionesQuery = Intencion::query();
 
         // Si no es admin, solo se consulta información del usuario autenticado
         if (!$esAdmin) {
             $citasQuery->where('feligres_id', $usuario->id);
             $peticionesQuery->where('feligres_id', $usuario->id);
-            $intencionesQuery->where('feligres_id', $usuario->id);
         }
 
         // Estadísticas de citas
@@ -47,12 +44,8 @@ class DashboardController extends Controller
             ->where('estado', 'confirmada')
             ->count();
 
-        // Estadísticas de peticiones e intenciones
+        // Estadísticas de peticiones
         $totalPeticiones = (clone $peticionesQuery)
-            ->count();
-
-        $intencionesPendientes = (clone $intencionesQuery)
-            ->where('estado', 'pendiente')
             ->count();
 
         // Próximas citas
@@ -66,14 +59,7 @@ class DashboardController extends Controller
 
         // Peticiones recientes
         $peticionesRecientes = (clone $peticionesQuery)
-            ->with(['feligres', 'sacerdote'])
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-
-        // Intenciones recientes
-        $intencionesRecientes = (clone $intencionesQuery)
-            ->with(['feligres', 'sacerdote'])
+            ->with(['feligres', 'sacerdote', 'categoria'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -84,10 +70,8 @@ class DashboardController extends Controller
             'citasHoy',
             'citasConfirmadas',
             'totalPeticiones',
-            'intencionesPendientes',
             'proximasCitas',
-            'peticionesRecientes',
-            'intencionesRecientes'
+            'peticionesRecientes'
         ));
     }
 }

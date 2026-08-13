@@ -1,17 +1,18 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
-@section('title', 'Editar Petición')
+@section('title', 'Editar PeticiÃ³n')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow-sm">
         <div class="p-6">
             <h1 class="text-2xl font-semibold text-gray-800 mb-2">
-                <i class="fas fa-edit"></i> Editar Petición
+                <i class="fas fa-edit"></i>
+                Editar PeticiÃ³n
             </h1>
 
             <p class="text-gray-500 text-sm mb-6">
-                Modifique los datos de la petición, gestione su estado y registre una respuesta si es necesario.
+                Modifique los datos de la peticiÃ³n, gestione su categorÃ­a, estado y registre una respuesta si es necesario.
             </p>
 
             <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-4 mb-6">
@@ -26,24 +27,27 @@
                 @method('PUT')
 
                 <div class="space-y-4">
-                    {{-- Feligrés --}}
+                    {{-- FeligrÃ©s --}}
                     <div>
                         <label for="feligres_id" class="block text-sm font-medium text-gray-700 mb-1">
-                            Feligrés *
+                            FeligrÃ©s *
                         </label>
+
                         <select
                             name="feligres_id"
                             id="feligres_id"
                             class="w-full rounded-lg border-gray-300 @error('feligres_id') border-red-500 @enderror"
                             required
                         >
-                            <option value="">Seleccione un feligrés</option>
+                            <option value="">Seleccione un feligrÃ©s</option>
+
                             @foreach($feligreses as $feligres)
                                 <option value="{{ $feligres->id }}" {{ old('feligres_id', $peticione->feligres_id) == $feligres->id ? 'selected' : '' }}>
                                     {{ $feligres->nombre_completo }} - {{ $feligres->documento }}
                                 </option>
                             @endforeach
                         </select>
+
                         @error('feligres_id')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -54,28 +58,58 @@
                         <label for="sacerdote_id" class="block text-sm font-medium text-gray-700 mb-1">
                             Sacerdote
                         </label>
+
                         <select
                             name="sacerdote_id"
                             id="sacerdote_id"
                             class="w-full rounded-lg border-gray-300 @error('sacerdote_id') border-red-500 @enderror"
                         >
-                            <option value="">Seleccione un sacerdote (opcional)</option>
+                            <option value="">Seleccione un sacerdote opcional</option>
+
                             @foreach($sacerdotes as $sacerdote)
                                 <option value="{{ $sacerdote->id }}" {{ old('sacerdote_id', $peticione->sacerdote_id) == $sacerdote->id ? 'selected' : '' }}>
                                     {{ $sacerdote->nombre_completo }} ({{ $sacerdote->cargo ?? $sacerdote->rol_texto }})
                                 </option>
                             @endforeach
                         </select>
+
                         @error('sacerdote_id')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Título --}}
+                    {{-- CategorÃ­a --}}
+                    <div>
+                        <label for="categoria_peticion_id" class="block text-sm font-medium text-gray-700 mb-1">
+                            CategorÃ­a *
+                        </label>
+
+                        <select
+                            name="categoria_peticion_id"
+                            id="categoria_peticion_id"
+                            class="w-full rounded-lg border-gray-300 @error('categoria_peticion_id') border-red-500 @enderror"
+                            required
+                        >
+                            <option value="">Seleccione una categorÃ­a</option>
+
+                            @foreach($categorias as $categoria)
+                                <option value="{{ $categoria->id }}" {{ old('categoria_peticion_id', $peticione->categoria_peticion_id) == $categoria->id ? 'selected' : '' }}>
+                                    {{ $categoria->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        @error('categoria_peticion_id')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- TÃ­tulo --}}
                     <div>
                         <label for="titulo" class="block text-sm font-medium text-gray-700 mb-1">
-                            Título *
+                            TÃ­tulo *
                         </label>
+
                         <input
                             type="text"
                             name="titulo"
@@ -84,16 +118,18 @@
                             class="w-full rounded-lg border-gray-300 @error('titulo') border-red-500 @enderror"
                             required
                         >
+
                         @error('titulo')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Descripción --}}
+                    {{-- DescripciÃ³n --}}
                     <div>
                         <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
-                            Descripción *
+                            DescripciÃ³n *
                         </label>
+
                         <textarea
                             name="descripcion"
                             id="descripcion"
@@ -101,7 +137,11 @@
                             class="w-full rounded-lg border-gray-300 @error('descripcion') border-red-500 @enderror"
                             required
                         >{{ old('descripcion', $peticione->descripcion) }}</textarea>
-                        <p class="text-xs text-gray-500 mt-1">Máximo 500 caracteres</p>
+
+                        <p class="text-xs text-gray-500 mt-1">
+                            MÃ¡ximo 500 caracteres
+                        </p>
+
                         @error('descripcion')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -112,14 +152,16 @@
                         <label for="fecha" class="block text-sm font-medium text-gray-700 mb-1">
                             Fecha *
                         </label>
+
                         <input
                             type="date"
                             name="fecha"
                             id="fecha"
-                            value="{{ old('fecha', $peticione->fecha->format('Y-m-d')) }}"
+                            value="{{ old('fecha', $peticione->fecha ? $peticione->fecha->format('Y-m-d') : '') }}"
                             class="w-full rounded-lg border-gray-300 @error('fecha') border-red-500 @enderror"
                             required
                         >
+
                         @error('fecha')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -130,17 +172,30 @@
                         <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">
                             Estado *
                         </label>
+
                         <select
                             name="estado"
                             id="estado"
                             class="w-full rounded-lg border-gray-300 @error('estado') border-red-500 @enderror"
                             required
                         >
-                            <option value="pendiente" {{ old('estado', $peticione->estado) == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                            <option value="aprobada" {{ old('estado', $peticione->estado) == 'aprobada' ? 'selected' : '' }}>Aprobada</option>
-                            <option value="completada" {{ old('estado', $peticione->estado) == 'completada' ? 'selected' : '' }}>Completada</option>
-                            <option value="rechazada" {{ old('estado', $peticione->estado) == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+                            <option value="pendiente" {{ old('estado', $peticione->estado) == 'pendiente' ? 'selected' : '' }}>
+                                Pendiente
+                            </option>
+
+                            <option value="aprobada" {{ old('estado', $peticione->estado) == 'aprobada' ? 'selected' : '' }}>
+                                Aprobada
+                            </option>
+
+                            <option value="completada" {{ old('estado', $peticione->estado) == 'completada' ? 'selected' : '' }}>
+                                Completada
+                            </option>
+
+                            <option value="rechazada" {{ old('estado', $peticione->estado) == 'rechazada' ? 'selected' : '' }}>
+                                Rechazada
+                            </option>
                         </select>
+
                         @error('estado')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -151,15 +206,18 @@
                         <label for="respuesta" class="block text-sm font-medium text-gray-700 mb-1">
                             Respuesta
                         </label>
+
                         <textarea
                             name="respuesta"
                             id="respuesta"
                             rows="3"
                             class="w-full rounded-lg border-gray-300 @error('respuesta') border-red-500 @enderror"
                         >{{ old('respuesta', $peticione->respuesta) }}</textarea>
+
                         <p class="text-xs text-gray-500 mt-1">
-                            Respuesta del sacerdote o del personal administrativo (opcional).
+                            Respuesta del sacerdote o del personal administrativo.
                         </p>
+
                         @error('respuesta')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -168,7 +226,7 @@
 
                 <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
                     <a
-                        href="{{ route('peticiones_intenciones.index') }}"
+                        href="{{ route('peticiones.index') }}"
                         class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
                     >
                         Cancelar
@@ -176,9 +234,10 @@
 
                     <button
                         type="submit"
-                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                     >
-                        <i class="fas fa-save"></i> Actualizar Petición
+                        <i class="fas fa-save"></i>
+                        Actualizar PeticiÃ³n
                     </button>
                 </div>
             </form>

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Nueva Petición')
 
@@ -24,11 +24,11 @@
                 @csrf
 
                 <div class="space-y-4">
-                    {{-- Feligrés: visible para todos (comportamiento original) --}}
                     <div>
                         <label for="feligres_id" class="block text-sm font-medium text-gray-700 mb-1">
                             Feligrés *
                         </label>
+
                         <select
                             name="feligres_id"
                             id="feligres_id"
@@ -36,44 +36,73 @@
                             required
                         >
                             <option value="">Seleccione un feligrés</option>
+
                             @foreach($feligreses as $feligres)
                                 <option value="{{ $feligres->id }}" {{ old('feligres_id') == $feligres->id ? 'selected' : '' }}>
                                     {{ $feligres->nombre_completo }} - {{ $feligres->documento }}
                                 </option>
                             @endforeach
                         </select>
+
                         @error('feligres_id')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Sacerdote --}}
                     <div>
                         <label for="sacerdote_id" class="block text-sm font-medium text-gray-700 mb-1">
                             Sacerdote
                         </label>
+
                         <select
                             name="sacerdote_id"
                             id="sacerdote_id"
                             class="w-full rounded-lg border-gray-300 @error('sacerdote_id') border-red-500 @enderror"
                         >
-                            <option value="">Seleccione un sacerdote (opcional)</option>
+                            <option value="">Seleccione un sacerdote opcional</option>
+
                             @foreach($sacerdotes as $sacerdote)
                                 <option value="{{ $sacerdote->id }}" {{ old('sacerdote_id') == $sacerdote->id ? 'selected' : '' }}>
                                     {{ $sacerdote->nombre_completo }} ({{ $sacerdote->cargo ?? $sacerdote->rol_texto }})
                                 </option>
                             @endforeach
                         </select>
+
                         @error('sacerdote_id')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Título --}}
+                    <div>
+                        <label for="categoria_peticion_id" class="block text-sm font-medium text-gray-700 mb-1">
+                            Categoría *
+                        </label>
+
+                        <select
+                            name="categoria_peticion_id"
+                            id="categoria_peticion_id"
+                            class="w-full rounded-lg border-gray-300 @error('categoria_peticion_id') border-red-500 @enderror"
+                            required
+                        >
+                            <option value="">Seleccione una categoría</option>
+
+                            @foreach($categorias as $categoria)
+                                <option value="{{ $categoria->id }}" {{ old('categoria_peticion_id') == $categoria->id ? 'selected' : '' }}>
+                                    {{ $categoria->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        @error('categoria_peticion_id')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <div>
                         <label for="titulo" class="block text-sm font-medium text-gray-700 mb-1">
                             Título *
                         </label>
+
                         <input
                             type="text"
                             name="titulo"
@@ -82,16 +111,17 @@
                             class="w-full rounded-lg border-gray-300 @error('titulo') border-red-500 @enderror"
                             required
                         >
+
                         @error('titulo')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Descripción --}}
                     <div>
                         <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
                             Descripción *
                         </label>
+
                         <textarea
                             name="descripcion"
                             id="descripcion"
@@ -99,17 +129,19 @@
                             class="w-full rounded-lg border-gray-300 @error('descripcion') border-red-500 @enderror"
                             required
                         >{{ old('descripcion') }}</textarea>
+
                         <p class="text-xs text-gray-500 mt-1">Máximo 500 caracteres</p>
+
                         @error('descripcion')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- Fecha --}}
                     <div>
                         <label for="fecha" class="block text-sm font-medium text-gray-700 mb-1">
                             Fecha *
                         </label>
+
                         <input
                             type="date"
                             name="fecha"
@@ -118,6 +150,7 @@
                             class="w-full rounded-lg border-gray-300 @error('fecha') border-red-500 @enderror"
                             required
                         >
+
                         @error('fecha')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -126,7 +159,7 @@
 
                 <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
                     <a
-                        href="{{ route('peticiones_intenciones.index') }}"
+                        href="{{ route('peticiones.index') }}"
                         class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
                     >
                         Cancelar
