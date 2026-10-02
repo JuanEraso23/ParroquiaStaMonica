@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AgendaSacerdote;
 use App\Models\Cita;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -141,7 +143,7 @@ class HorarioController extends Controller
                 $cita->hora_fin_formateada = $horaFin->format('g:i A');
                 $cita->duracion_minutos = $duracion;
                 $cita->color_barra = $this->colorPorTipo($cita->tipo);
-                
+
                 // Tipo texto
                 $cita->tipo_texto = match($cita->tipo) {
                     'confesion' => 'Confesión',
@@ -150,7 +152,7 @@ class HorarioController extends Controller
                     'orientacion' => 'Orientación',
                     default => ucfirst($cita->tipo),
                 };
-                
+
                 // Badge de estado
                 $cita->estado_badge = match($cita->estado) {
                     'pendiente' => 'bg-yellow-100 text-yellow-800',
@@ -159,10 +161,10 @@ class HorarioController extends Controller
                     'cancelada' => 'bg-red-100 text-red-800',
                     default => 'bg-gray-100 text-gray-800',
                 };
-                
+
                 // ✅ Flag para saber si la cita pertenece al usuario actual
                 $cita->es_propia = ($cita->feligres_id === $usuarioId);
-                
+
                 // ✅ Guardar nombre del feligrés (para admin o para citas propias)
                 $cita->feligres_nombre = $cita->feligres->nombre_completo ?? $cita->feligres->name ?? 'No especificado';
 
@@ -178,6 +180,17 @@ class HorarioController extends Controller
             ];
         }
 
+        // Sacerdotes para panel de agendas
+        $sacerdotes = User::whereIn('rol', ['parroco', 'vicario'])
+            ->orderBy('name')
+            ->get();
+
+        // Agendas del día por sacerdote
+        $agendasDelDia = AgendaSacerdote::whereDate('fecha', $fechaSeleccionada->format('Y-m-d'))
+            ->with(['usuarioApertura', 'usuarioCierre'])
+            ->get()
+            ->keyBy('sacerdote_id');
+
         $fechaAnterior = $fechaSeleccionada->copy()->subDay();
         $fechaSiguiente = $fechaSeleccionada->copy()->addDay();
 
@@ -187,7 +200,9 @@ class HorarioController extends Controller
             'fechaSiguiente',
             'citas',
             'horas',
-            'esAdmin'
+            'esAdmin',
+            'sacerdotes',
+            'agendasDelDia'
         ));
     }
 }
