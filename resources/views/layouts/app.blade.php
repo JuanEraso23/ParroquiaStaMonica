@@ -13,7 +13,7 @@
 
     <!-- Scripts y CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -32,7 +32,7 @@
 
     <!-- Overlay del sidebar -->
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
-    
+
     <!-- Sidebar (menú vertical) -->
     <div id="sidebar" class="sidebar">
         <!-- Perfil del usuario en el sidebar -->
@@ -69,6 +69,15 @@
                 <a href="#" class="sidebar-nav-item">
                     <i class="fas fa-clock"></i> Horarios
                 </a>
+            @endif
+
+            <!-- Agendas: SOLO admin -->
+            @if($esAdmin)
+                @if(Route::has('agendas.index'))
+                    <a href="{{ route('agendas.index') }}" class="sidebar-nav-item {{ request()->routeIs('agendas.*') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-plus"></i> Agendas
+                    </a>
+                @endif
             @endif
 
             <!-- Usuarios: SOLO admin -->
@@ -133,9 +142,9 @@
                 <h6>Diseñado por:</h6>
                 <p>
                     Juan Sebastián Coronado Parra |
-                    Juan Manuel Eraso Grijalba | 
-                    Diego Fernando Escobar Enriquez | 
-                    Jaider Andrés Narvaéz Cabrera | 
+                    Juan Manuel Eraso Grijalba |
+                    Diego Fernando Escobar Enriquez |
+                    Jaider Andrés Narvaéz Cabrera |
                     David Esteban Ortiz Ortiz
                 </p>
             </div>
