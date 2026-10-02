@@ -14,6 +14,7 @@ class Peticion extends Model
     protected $fillable = [
         'feligres_id',
         'sacerdote_id',
+        'categoria_peticion_id',
         'titulo',
         'descripcion',
         'fecha',
@@ -36,6 +37,11 @@ class Peticion extends Model
         return $this->belongsTo(User::class, 'sacerdote_id');
     }
 
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaPeticion::class, 'categoria_peticion_id');
+    }
+
     public function getEstadoBadgeAttribute()
     {
         $badges = [
@@ -44,6 +50,7 @@ class Peticion extends Model
             'completada' => 'bg-blue-100 text-blue-800',
             'rechazada' => 'bg-red-100 text-red-800',
         ];
+
         return $badges[$this->estado] ?? 'bg-gray-100 text-gray-800';
     }
 }
