@@ -26,6 +26,17 @@
                 @csrf
 
                 <div class="space-y-4">
+                    {{-- Aviso: agenda cerrada --}}
+                    @if(!($agendaAbierta ?? true))
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p class="text-sm text-red-700">
+                                <i class="fas fa-lock mr-1"></i>
+                                La agenda del sacerdote seleccionado está <strong>cerrada</strong> para la fecha indicada.
+                                No es posible registrar nuevas citas. Contacte a la secretaría parroquial para solicitar la apertura.
+                            </p>
+                        </div>
+                    @endif
+
                     {{-- Campo FELIGRÉS: SOLO ADMIN --}}
                     @if($esAdmin)
                         <div>
@@ -140,6 +151,7 @@
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+
                     {{-- Duración --}}
                     <div>
                         <label for="duracion_minutos" class="block text-sm font-medium text-gray-700 mb-1">
@@ -179,6 +191,7 @@
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+
                     {{-- Descripción --}}
                     <div>
                         <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
@@ -197,8 +210,9 @@
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    {{-- Horarios sugeridos --}}
-                    @if(!empty($horarios))
+
+                    {{-- Horarios sugeridos (solo si la agenda está abierta) --}}
+                    @if(($agendaAbierta ?? false) && !empty($horarios))
                         <div class="mt-6 pt-4 border-t">
                             <h3 class="text-sm font-semibold text-gray-700 mb-2">
                                 <i class="fas fa-clock mr-1"></i>

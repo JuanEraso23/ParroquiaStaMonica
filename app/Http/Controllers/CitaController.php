@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AgendaSacerdote;
 use App\Models\Cita;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -18,14 +19,12 @@ class CitaController extends Controller
         return Auth::check() && Auth::user()->esAdministrador();
     }
 
-
     private function calcularHoraFin(string $horaInicio, int $duracionMinutos): string
     {
         return Carbon::parse($horaInicio)
             ->addMinutes($duracionMinutos)
             ->format('H:i:s');
     }
-
 
     private function estaDentroDeJornada(string $horaInicio, string $horaFin): bool
     {
@@ -56,6 +55,17 @@ class CitaController extends Controller
                 $query->where('hora', '<', $horaFin)
                     ->where('hora_fin', '>', $horaInicio);
             })
+            ->exists();
+    }
+
+    /**
+     * Verifica si la agenda del sacerdote para esa fecha está abierta.
+     */
+    private function agendaEstaAbierta(int $sacerdoteId, string $fecha): bool
+    {
+        return AgendaSacerdote::where('sacerdote_id', $sacerdoteId)
+            ->whereDate('fecha', $fecha)
+            ->where('estado', 'abierta')
             ->exists();
     }
 
@@ -102,7 +112,6 @@ class CitaController extends Controller
 
         return $horarios;
     }
-
 
     /**
      * Muestra el listado de citas.
@@ -179,8 +188,9 @@ class CitaController extends Controller
      * Muestra el formulario para crear cita.
      * - Admin: puede seleccionar cualquier feligrés.
      * - Feligres: solo puede crear cita para sí mismo.
+     * - Si la agenda del sacerdote está cerrada para esa fecha, se muestra aviso.
      */
-   public function create(Request $request)
+    public function create(Request $request)
     {
         $usuario = Auth::user();
 
@@ -208,14 +218,22 @@ class CitaController extends Controller
 
         $duracionSeleccionada = (int) $request->input('duracion_minutos', 20);
 
+        $agendaAbierta = false;
         $horarios = [];
 
         if ($sacerdoteSeleccionado && $fechaSeleccionada) {
-            $horarios = $this->obtenerHorariosDisponibles(
-                $sacerdoteSeleccionado,
-                $fechaSeleccionada,
-                $duracionSeleccionada
+            $agendaAbierta = $this->agendaEstaAbierta(
+                (int) $sacerdoteSeleccionado,
+                $fechaSeleccionada
             );
+
+            if ($agendaAbierta) {
+                $horarios = $this->obtenerHorariosDisponibles(
+                    $sacerdoteSeleccionado,
+                    $fechaSeleccionada,
+                    $duracionSeleccionada
+                );
+            }
         }
 
         return view('citas.create', compact(
@@ -224,7 +242,8 @@ class CitaController extends Controller
             'horarios',
             'sacerdoteSeleccionado',
             'fechaSeleccionada',
-            'duracionSeleccionada'
+            'duracionSeleccionada',
+            'agendaAbierta'
         ));
     }
 
@@ -233,6 +252,7 @@ class CitaController extends Controller
      * - Admin: puede crear para cualquier feligrés.
      * - Feligres: solo crea para sí mismo.
      * - Estado por defecto: pendiente
+     * - Bloquea si la agenda del sacerdote está cerrada para esa fecha.
      */
     public function store(Request $request)
     {
@@ -264,9 +284,19 @@ class CitaController extends Controller
             unset($validated['notas_internas']);
         }
 
+        // 1) Agenda debe estar abierta para ese sacerdote y esa fecha
+        if (!$this->agendaEstaAbierta((int) $validated['sacerdote_id'], $validated['fecha'])) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'La agenda del sacerdote está cerrada para esa fecha. No se pueden registrar nuevas citas.'
+                ]);
+        }
+
         $horaInicio = $validated['hora'];
         $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
 
+        // 2) Dentro de la jornada 15:00 - 18:00
         if (!$this->estaDentroDeJornada($horaInicio, $horaFin)) {
             return back()
                 ->withInput()
@@ -275,6 +305,7 @@ class CitaController extends Controller
                 ]);
         }
 
+        // 3) Sin cruces con otras citas del mismo sacerdote
         if ($this->existeCruceHorario(
             (int) $validated['sacerdote_id'],
             $validated['fecha'],
@@ -317,12 +348,19 @@ class CitaController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('citas.edit', compact('cita', 'feligreses', 'sacerdotes'));
+        $agendaAbierta = $this->agendaEstaAbierta(
+            (int) $cita->sacerdote_id,
+            Carbon::parse($cita->fecha)->toDateString()
+        );
+
+        return view('citas.edit', compact('cita', 'feligreses', 'sacerdotes', 'agendaAbierta'));
     }
 
     /**
      * Actualiza una cita.
      * SOLO admin.
+     * - No bloquea la edición normal de una cita existente.
+     * - Solo bloquea si se intenta mover a una fecha/sacerdote con agenda cerrada.
      */
     public function update(Request $request, Cita $cita)
     {
@@ -341,6 +379,23 @@ class CitaController extends Controller
             'estado' => 'required|in:pendiente,confirmada,cancelada,completada',
             'notas_internas' => 'nullable|string',
         ]);
+
+        // Detectar si la cita cambia de sacerdote o de fecha
+        $mismaFecha = Carbon::parse($cita->fecha)->toDateString()
+            === Carbon::parse($validated['fecha'])->toDateString();
+
+        $mismoSacerdote = (int) $cita->sacerdote_id === (int) $validated['sacerdote_id'];
+
+        // Solo si cambia de sacerdote o fecha, se exige que la agenda esté abierta
+        if ((!$mismaFecha || !$mismoSacerdote)
+            && !$this->agendaEstaAbierta((int) $validated['sacerdote_id'], $validated['fecha'])) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'fecha' => 'No se puede mover esta cita: la agenda del sacerdote está cerrada para esa fecha.'
+                ]);
+        }
+
         $horaInicio = $validated['hora'];
         $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
 

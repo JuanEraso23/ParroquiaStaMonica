@@ -23,6 +23,18 @@
                 </p>
             </div>
 
+            {{-- Aviso: agenda cerrada en la fecha/sacerdote actuales --}}
+            @if(!($agendaAbierta ?? true))
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-red-700">
+                        <i class="fas fa-lock mr-1"></i>
+                        La agenda del sacerdote para esta fecha está <strong>cerrada</strong>.
+                        Puede editar esta cita existente, pero si intenta moverla a otro sacerdote o a un día con agenda cerrada,
+                        el sistema lo bloqueará.
+                    </p>
+                </div>
+            @endif
+
             <form action="{{ route('citas.update', $cita) }}" method="POST">
                 @csrf
                 @method('PUT')
