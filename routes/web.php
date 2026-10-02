@@ -8,6 +8,7 @@ use App\Http\Controllers\PeticionController;
 use App\Http\Controllers\IntencionController;
 use App\Http\Controllers\PeticionIntencionController;
 use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\AgendaSacerdoteController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -96,6 +97,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/horarios/{fecha}', [HorarioController::class, 'dia'])
         ->name('horarios.dia');
+
+    /**
+     * Agendas de sacerdotes - apertura y cierre diario
+     */
+    Route::get('agendas', [AgendaSacerdoteController::class, 'index'])
+        ->name('agendas.index');
+
+    Route::post('agendas/abrir', [AgendaSacerdoteController::class, 'abrir'])
+        ->name('agendas.abrir');
+
+    Route::patch('agendas/{agenda}/cerrar', [AgendaSacerdoteController::class, 'cerrar'])
+        ->name('agendas.cerrar');
 });
 
 /**
