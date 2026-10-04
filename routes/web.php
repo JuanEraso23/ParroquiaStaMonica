@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AyudaController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HorarioController;
@@ -81,6 +82,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/horarios/{fecha}', [HorarioController::class, 'dia'])
         ->name('horarios.dia');
+
+    /**
+     * Ayuda - centro de ayuda y manuales internos.
+     */
+    Route::get('/ayuda', [AyudaController::class, 'index'])
+        ->name('ayuda.index');
 });
 
 /**
