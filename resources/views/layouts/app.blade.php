@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -70,6 +70,12 @@
                     <i class="fas fa-user"></i> Mi Perfil
                 </a>
             @endif
+
+            {{-- Centro de Ayuda - visible para todos los usuarios --}}
+            <a href="{{ route('ayuda.index') }}"
+               class="sidebar-nav-item {{ request()->routeIs('ayuda.*') ? 'active' : '' }}">
+                <i class="fas fa-circle-info"></i> Ayuda
+            </a>
         </div>
     </div>
 
