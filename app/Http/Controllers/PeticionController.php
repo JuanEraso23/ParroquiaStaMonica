@@ -152,6 +152,21 @@ class PeticionController extends Controller
 
         $validated = $request->validate($rules);
 
+        // --- INICIO DE LA NUEVA VALIDACIÓN ---
+        // Si NO es admin, validamos la hora límite para el día de hoy
+        if (!$this->esAdmin()) {
+            $fechaPeticion = $validated['fecha'];
+            $horaActual = \Carbon\Carbon::now();
+            $limiteHoy = \Carbon\Carbon::today()->setHour(17)->setMinute(30)->setSecond(0);
+
+            if (\Carbon\Carbon::parse($fechaPeticion)->isToday() && $horaActual->greaterThan($limiteHoy)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['fecha' => 'El plazo para registrar peticiones para la misa de hoy (6:30 PM) vence a las 5:30 PM. Por favor, selecciona la fecha de mañana o un día posterior.']);
+            }
+        }
+        // --- FIN DE LA NUEVA VALIDACIÓN ---
+
         if (!$this->esAdmin()) {
             $validated['feligres_id'] = $usuario->id;
         }
