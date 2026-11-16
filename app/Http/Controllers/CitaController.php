@@ -278,6 +278,14 @@ class CitaController extends Controller
 
         $validated = $request->validate($rules);
 
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
+
         // Si NO es admin, la cita siempre queda asociada al usuario autenticado
         if (!$this->esAdmin()) {
             $validated['feligres_id'] = $usuario->id;
@@ -379,6 +387,14 @@ class CitaController extends Controller
             'estado' => 'required|in:pendiente,confirmada,cancelada,completada',
             'notas_internas' => 'nullable|string',
         ]);
+
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
 
         // Detectar si la cita cambia de sacerdote o de fecha
         $mismaFecha = Carbon::parse($cita->fecha)->toDateString()
