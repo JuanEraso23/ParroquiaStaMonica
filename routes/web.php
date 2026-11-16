@@ -1,36 +1,35 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\AyudaController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PeticionController;
-use App\Http\Controllers\IntencionController;
-use App\Http\Controllers\PeticionIntencionController;
 use App\Http\Controllers\HorarioController;
 use App\Http\Controllers\AgendaSacerdoteController;
+use App\Http\Controllers\PeticionController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 /**
- * Página de inicio pública
+ * Página de inicio pública.
  */
 Route::get('/', function () {
     return view('welcome');
 });
 
 /**
- * Rutas protegidas generales
+ * Rutas protegidas generales.
  */
 Route::middleware(['auth', 'verified'])->group(function () {
 
     /**
-     * Dashboard
+     * Dashboard.
      */
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 
     /**
-     * Perfil del usuario
+     * Perfil del usuario.
      */
     Route::get('/perfil', [ProfileController::class, 'index'])
         ->name('profile.index');
@@ -45,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('profile.destroy');
 
     /**
-     * Cambio de contraseña
+     * Cambio de contraseña.
      */
     Route::get('/perfil/password', [ProfileController::class, 'password'])
         ->name('profile.password');
@@ -54,7 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('profile.update-password');
 
     /**
-     * Citas - rutas compartidas
+     * Citas - rutas compartidas.
      */
     Route::resource('citas', CitaController::class)->only([
         'index',
@@ -64,7 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ]);
 
     /**
-     * Peticiones - rutas compartidas
+     * Peticiones - rutas compartidas.
+     *
+     * El método index ahora muestra directamente el listado,
+     * filtros y categorías de las peticiones.
      */
     Route::resource('peticiones', PeticionController::class)->only([
         'index',
@@ -74,23 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ]);
 
     /**
-     * Intenciones - rutas compartidas
-     */
-    Route::resource('intenciones', IntencionController::class)->only([
-        'index',
-        'create',
-        'store',
-        'destroy',
-    ]);
-
-    /**
-     * Vista unificada de peticiones e intenciones
-     */
-    Route::get('/peticiones_intenciones', [PeticionIntencionController::class, 'index'])
-        ->name('peticiones_intenciones.index');
-
-    /**
-     * Horarios - agenda informativa
+     * Horarios - agenda informativa.
      */
     Route::get('/horarios', [HorarioController::class, 'index'])
         ->name('horarios.index');
@@ -109,23 +95,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::patch('agendas/{agenda}/cerrar', [AgendaSacerdoteController::class, 'cerrar'])
         ->name('agendas.cerrar');
+    /**
+     * Ayuda - centro de ayuda y manuales internos.
+     */
+    Route::get('/ayuda', [AyudaController::class, 'index'])
+        ->name('ayuda.index');
 });
 
 /**
- * Rutas exclusivas para administradores
+ * Rutas exclusivas para administradores.
  */
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
 
     /**
-     * Usuarios
+     * Usuarios.
      */
     Route::resource('usuarios', UsuarioController::class);
 
-    Route::patch('usuarios/{usuario}/toggle-activo', [UsuarioController::class, 'toggleActivo'])
-        ->name('usuarios.toggle-activo');
+    Route::patch(
+        'usuarios/{usuario}/toggle-activo',
+        [UsuarioController::class, 'toggleActivo']
+    )->name('usuarios.toggle-activo');
 
     /**
-     * Citas - acciones administrativas
+     * Citas - acciones administrativas.
      */
     Route::get('citas/{cita}/edit', [CitaController::class, 'edit'])
         ->name('citas.edit');
@@ -133,35 +126,31 @@ Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::put('citas/{cita}', [CitaController::class, 'update'])
         ->name('citas.update');
 
-    Route::patch('citas/{cita}/estado', [CitaController::class, 'cambiarEstado'])
-        ->name('citas.estado');
+    Route::patch(
+        'citas/{cita}/estado',
+        [CitaController::class, 'cambiarEstado']
+    )->name('citas.estado');
 
     /**
-     * Peticiones - acciones administrativas
+     * Peticiones - acciones administrativas.
      */
-    Route::get('peticiones/{peticione}/edit', [PeticionController::class, 'edit'])
-        ->name('peticiones.edit');
+    Route::get(
+        'peticiones/{peticione}/edit',
+        [PeticionController::class, 'edit']
+    )->name('peticiones.edit');
 
-    Route::put('peticiones/{peticione}', [PeticionController::class, 'update'])
-        ->name('peticiones.update');
+    Route::put(
+        'peticiones/{peticione}',
+        [PeticionController::class, 'update']
+    )->name('peticiones.update');
 
-    Route::patch('peticiones/{peticione}/estado', [PeticionController::class, 'cambiarEstado'])
-        ->name('peticiones.estado');
-
-    /**
-     * Intenciones - acciones administrativas
-     */
-    Route::get('intenciones/{intencione}/edit', [IntencionController::class, 'edit'])
-        ->name('intenciones.edit');
-
-    Route::put('intenciones/{intencione}', [IntencionController::class, 'update'])
-        ->name('intenciones.update');
-
-    Route::patch('intenciones/{intencione}/estado', [IntencionController::class, 'cambiarEstado'])
-        ->name('intenciones.estado');
+    Route::patch(
+        'peticiones/{peticione}/estado',
+        [PeticionController::class, 'cambiarEstado']
+    )->name('peticiones.estado');
 });
 
 /**
- * Rutas de autenticación
+ * Rutas de autenticación.
  */
 require __DIR__ . '/auth.php';
