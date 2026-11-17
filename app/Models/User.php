@@ -11,7 +11,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * Los atributos que son asignables masivamente.
+     * Atributos que pueden asignarse masivamente.
      *
      * @var array<int, string>
      */
@@ -28,11 +28,11 @@ class User extends Authenticatable
         'activo',
         'cargo',
         'notas_internas',
-        'last_activity'
+        'last_activity',
     ];
 
     /**
-     * Los atributos que deben estar ocultos para la serialización.
+     * Atributos que deben estar ocultos durante la serialización.
      *
      * @var array<int, string>
      */
@@ -42,9 +42,9 @@ class User extends Authenticatable
     ];
 
     /**
-     * Los atributos que deben ser convertidos a tipos nativos.
+     * Conversión de atributos a tipos nativos.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
     protected function casts(): array
     {
@@ -53,56 +53,60 @@ class User extends Authenticatable
             'fecha_nacimiento' => 'date',
             'password' => 'hashed',
             'activo' => 'boolean',
-            'last_activity' => 'datetime',  // ← Agrega esta línea
+            'last_activity' => 'datetime',
         ];
     }
 
-    // ==================== MÉTODOS DE VERIFICACIÓN DE ROLES ====================
-    
+    // ==================== VERIFICACIÓN DE ROLES ====================
+
     /**
-     * Verifica si el usuario es un feligrés común
+     * Verifica si el usuario es un feligrés.
      */
-    public function esFeligres()
+    public function esFeligres(): bool
     {
         return $this->rol === 'feligres';
     }
 
     /**
-     * Verifica si el usuario es secretaria
+     * Verifica si el usuario pertenece a secretaría.
      */
-    public function esSecretaria()
+    public function esSecretaria(): bool
     {
         return $this->rol === 'secretaria';
     }
 
     /**
-     * Verifica si el usuario es párroco
+     * Verifica si el usuario es párroco.
      */
-    public function esParroco()
+    public function esParroco(): bool
     {
         return $this->rol === 'parroco';
     }
 
     /**
-     * Verifica si el usuario es vicario
+     * Verifica si el usuario es vicario.
      */
-    public function esVicario()
+    public function esVicario(): bool
     {
         return $this->rol === 'vicario';
     }
 
     /**
-     * Verifica si el usuario es administrador (secretaria, parroco o vicario)
+     * Verifica si el usuario posee un rol administrativo.
      */
-    public function esAdministrador()
+    public function esAdministrador(): bool
     {
-        return in_array($this->rol, ['secretaria', 'parroco', 'vicario']);
+        return in_array(
+            $this->rol,
+            ['secretaria', 'parroco', 'vicario'],
+            true
+        );
     }
 
     // ==================== SCOPES ====================
-    
+
     /**
-     * Scope para obtener solo usuarios activos
+     * Obtiene únicamente usuarios activos.
      */
     public function scopeActivos($query)
     {
@@ -110,7 +114,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope para obtener solo feligreses
+     * Obtiene únicamente feligreses.
      */
     public function scopeFeligreses($query)
     {
@@ -118,42 +122,45 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope para obtener solo administradores
+     * Obtiene únicamente usuarios administrativos.
      */
     public function scopeAdministradores($query)
     {
-        return $query->whereIn('rol', ['secretaria', 'parroco', 'vicario']);
+        return $query->whereIn(
+            'rol',
+            ['secretaria', 'parroco', 'vicario']
+        );
     }
 
-    // ==================== ACCESORES (ATRIBUTOS DINÁMICOS) ====================
-    
+    // ==================== ACCESORES ====================
+
     /**
-     * Obtiene el nombre completo del usuario
+     * Obtiene el nombre completo del usuario.
      */
-    public function getNombreCompletoAttribute()
+    public function getNombreCompletoAttribute(): string
     {
-        return "{$this->name} {$this->apellidos}";
+        return trim("{$this->name} {$this->apellidos}");
     }
 
     /**
-     * Obtiene el rol en español con primera letra mayúscula
+     * Obtiene el nombre del rol en español.
      */
-    public function getRolTextoAttribute()
+    public function getRolTextoAttribute(): string
     {
         $roles = [
             'feligres' => 'Feligrés',
-            'secretaria' => 'Secretaria',
+            'secretaria' => 'Secretaría',
             'parroco' => 'Párroco',
             'vicario' => 'Vicario',
         ];
-        
+
         return $roles[$this->rol] ?? ucfirst($this->rol);
     }
 
     /**
-     * Obtiene el badge de color según el rol
+     * Obtiene la clase de color correspondiente al rol.
      */
-    public function getRolBadgeAttribute()
+    public function getRolBadgeAttribute(): string
     {
         $colores = [
             'feligres' => 'secondary',
@@ -161,41 +168,43 @@ class User extends Authenticatable
             'parroco' => 'danger',
             'vicario' => 'warning',
         ];
-        
+
         return $colores[$this->rol] ?? 'secondary';
     }
 
-    // ==================== RELACIONES (para el futuro) ====================
-    
+    // ==================== RELACIONES CON CITAS ====================
+
     /**
-     * Relación con las solicitudes de citas que ha hecho el feligrés
+     * Citas solicitadas por el usuario como feligrés.
      */
-    public function solicitudesCitas()
+    public function citasSolicitadas()
     {
-        return $this->hasMany(SolicitudCita::class, 'feligres_id');
+        return $this->hasMany(Cita::class, 'feligres_id');
     }
 
     /**
-     * Relación con las citas que ha atendido como administrador
+     * Citas asignadas al usuario como sacerdote.
      */
-    public function citasAtendidas()
+    public function citasAsignadas()
     {
-        return $this->hasMany(SolicitudCita::class, 'administrador_id');
+        return $this->hasMany(Cita::class, 'sacerdote_id');
+    }
+
+    // ==================== RELACIONES CON PETICIONES ====================
+
+    /**
+     * Peticiones registradas por el usuario como feligrés.
+     */
+    public function peticiones()
+    {
+        return $this->hasMany(Peticion::class, 'feligres_id');
     }
 
     /**
-     * Relación con las peticiones e intenciones
+     * Peticiones asignadas al usuario como sacerdote.
      */
-    public function peticionesIntenciones()
+    public function peticionesAsignadas()
     {
-        return $this->hasMany(PeticionIntencion::class);
-    }
-
-    /**
-     * Relación con los pagos que ha verificado
-     */
-    public function pagosVerificados()
-    {
-        return $this->hasMany(Pago::class, 'verificado_por');
+        return $this->hasMany(Peticion::class, 'sacerdote_id');
     }
 }

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CategoriaPeticion;
 use App\Models\Peticion;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class PeticionController extends Controller
 {
@@ -17,12 +19,94 @@ class PeticionController extends Controller
         return Auth::check() && Auth::user()->esAdministrador();
     }
 
-    public function index()
+    /**
+     * Lista las peticiones.
+     * El administrador ve todas y el feligrés solo las propias.
+     */
+    public function index(Request $request)
     {
-        // Siempre redirige a la vista unificada
-        return redirect()->route('peticiones_intenciones.index', ['tipo' => 'peticion']);
+        $usuario = Auth::user();
+        $esAdmin = $this->esAdmin();
+
+        $estado = $request->get('estado');
+        $search = $request->get('search');
+        $sacerdoteId = $request->get('sacerdote_id');
+        $categoriaId = $request->get('categoria_peticion_id');
+
+        $peticionesQuery = Peticion::with([
+            'feligres',
+            'sacerdote',
+            'categoria',
+        ]);
+
+        if (!$esAdmin) {
+            $peticionesQuery->where('feligres_id', $usuario->id);
+        }
+
+        if ($estado && $estado !== 'todos') {
+            $peticionesQuery->where('estado', $estado);
+        }
+
+        if ($sacerdoteId && $sacerdoteId !== 'todos') {
+            $peticionesQuery->where('sacerdote_id', $sacerdoteId);
+        }
+
+        if ($categoriaId && $categoriaId !== 'todos') {
+            $peticionesQuery->where(
+                'categoria_peticion_id',
+                $categoriaId
+            );
+        }
+
+        if ($search) {
+            $peticionesQuery->where(function ($query) use ($search, $esAdmin) {
+                $query->where('titulo', 'like', "%{$search}%")
+                    ->orWhere('descripcion', 'like', "%{$search}%")
+                    ->orWhereHas('sacerdote', function ($subQuery) use ($search) {
+                        $subQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('apellidos', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('categoria', function ($subQuery) use ($search) {
+                        $subQuery->where('nombre', 'like', "%{$search}%");
+                    });
+
+                if ($esAdmin) {
+                    $query->orWhereHas('feligres', function ($subQuery) use ($search) {
+                        $subQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('apellidos', 'like', "%{$search}%")
+                            ->orWhere('telefono', 'like', "%{$search}%")
+                            ->orWhere('documento', 'like', "%{$search}%");
+                    });
+                }
+            });
+        }
+
+        $items = $peticionesQuery
+            ->orderBy('fecha', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        $sacerdotes = User::whereIn('rol', ['parroco', 'vicario'])
+            ->orderBy('name')
+            ->get();
+
+        $categorias = CategoriaPeticion::orderBy('nombre')->get();
+
+        return view('peticiones.index', compact(
+            'items',
+            'sacerdotes',
+            'categorias',
+            'estado',
+            'search',
+            'sacerdoteId',
+            'categoriaId',
+            'esAdmin'
+        ));
     }
 
+    /**
+     * Muestra el formulario de creación.
+     */
     public function create()
     {
         $usuario = Auth::user();
@@ -32,7 +116,6 @@ class PeticionController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Feligrés solo puede crear para sí mismo
             $feligreses = User::where('id', $usuario->id)->get();
         }
 
@@ -40,15 +123,25 @@ class PeticionController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('peticiones.create', compact('feligreses', 'sacerdotes'));
+        $categorias = CategoriaPeticion::orderBy('nombre')->get();
+
+        return view('peticiones.create', compact(
+            'feligreses',
+            'sacerdotes',
+            'categorias'
+        ));
     }
 
+    /**
+     * Guarda una petición.
+     */
     public function store(Request $request)
     {
         $usuario = Auth::user();
 
         $rules = [
             'sacerdote_id' => 'nullable|exists:users,id',
+            'categoria_peticion_id' => 'required|exists:categoria_peticions,id',
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required|string|max:500',
             'fecha' => 'required|date',
@@ -60,7 +153,27 @@ class PeticionController extends Controller
 
         $validated = $request->validate($rules);
 
-        // Forzar feligrés si no es admin
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
+
+        // --- VALIDACIÓN: HORA LÍMITE PARA HOY (Feligreses) ---
+        if (!$this->esAdmin()) {
+            $fechaPeticion = $validated['fecha'];
+            $horaActual = Carbon::now();
+            $limiteHoy = Carbon::today()->setHour(17)->setMinute(30)->setSecond(0);
+
+            if (Carbon::parse($fechaPeticion)->isToday() && $horaActual->greaterThan($limiteHoy)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['fecha' => 'El plazo para registrar peticiones para la misa de hoy vence a las 5:30 PM. Por favor, selecciona la fecha de mañana o un día posterior.']);
+            }
+        }
+
         if (!$this->esAdmin()) {
             $validated['feligres_id'] = $usuario->id;
         }
@@ -70,10 +183,13 @@ class PeticionController extends Controller
         Peticion::create($validated);
 
         return redirect()
-            ->route('peticiones_intenciones.index', ['tipo' => 'peticion'])
+            ->route('peticiones.index')
             ->with('success', 'Petición creada exitosamente.');
     }
 
+    /**
+     * Muestra el formulario de edición.
+     */
     public function edit(Peticion $peticione)
     {
         if (!$this->esAdmin()) {
@@ -88,9 +204,19 @@ class PeticionController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('peticiones.edit', compact('peticione', 'feligreses', 'sacerdotes'));
+        $categorias = CategoriaPeticion::orderBy('nombre')->get();
+
+        return view('peticiones.edit', compact(
+            'peticione',
+            'feligreses',
+            'sacerdotes',
+            'categorias'
+        ));
     }
 
+    /**
+     * Actualiza una petición.
+     */
     public function update(Request $request, Peticion $peticione)
     {
         if (!$this->esAdmin()) {
@@ -100,6 +226,7 @@ class PeticionController extends Controller
         $validated = $request->validate([
             'feligres_id' => 'required|exists:users,id',
             'sacerdote_id' => 'nullable|exists:users,id',
+            'categoria_peticion_id' => 'required|exists:categoria_peticions,id',
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required|string|max:500',
             'fecha' => 'required|date',
@@ -107,13 +234,24 @@ class PeticionController extends Controller
             'respuesta' => 'nullable|string',
         ]);
 
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES (AL EDITAR) ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
+
         $peticione->update($validated);
 
         return redirect()
-            ->route('peticiones_intenciones.index', ['tipo' => 'peticion'])
+            ->route('peticiones.index')
             ->with('success', 'Petición actualizada exitosamente.');
     }
 
+    /**
+     * Elimina una petición.
+     */
     public function destroy(Peticion $peticione)
     {
         $usuario = Auth::user();
@@ -122,40 +260,48 @@ class PeticionController extends Controller
             $peticione->delete();
 
             return redirect()
-                ->route('peticiones_intenciones.index', ['tipo' => 'peticion'])
+                ->route('peticiones.index')
                 ->with('success', 'Petición eliminada exitosamente.');
         }
 
-        // Feligrés: solo puede eliminar sus peticiones pendientes
         if ($peticione->feligres_id !== $usuario->id) {
             abort(403, 'No tienes permiso para eliminar esta petición.');
         }
 
         if ($peticione->estado !== 'pendiente') {
             return redirect()
-                ->route('peticiones_intenciones.index', ['tipo' => 'peticion'])
-                ->with('error', 'Solo puedes eliminar peticiones en estado pendiente.');
+                ->route('peticiones.index')
+                ->with(
+                    'error',
+                    'Solo puedes eliminar peticiones en estado pendiente.'
+                );
         }
 
         $peticione->delete();
 
         return redirect()
-            ->route('peticiones_intenciones.index', ['tipo' => 'peticion'])
-            ->with('success', 'Tu petición pendiente fue eliminada exitosamente.');
+            ->route('peticiones.index')
+            ->with(
+                'success',
+                'Tu petición pendiente fue eliminada exitosamente.'
+            );
     }
 
+    /**
+     * Cambia el estado de una petición.
+     */
     public function cambiarEstado(Request $request, Peticion $peticione)
     {
         if (!$this->esAdmin()) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'estado' => 'required|in:pendiente,aprobada,completada,rechazada',
         ]);
 
         $peticione->update([
-            'estado' => $request->estado,
+            'estado' => $validated['estado'],
         ]);
 
         return back()->with('success', 'Estado actualizado exitosamente.');

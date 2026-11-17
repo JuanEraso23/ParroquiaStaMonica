@@ -75,10 +75,64 @@
                 </div>
             </div>
 
+            {{-- Estado de agendas del día (SOLO ADMIN) --}}
+            @if($esAdmin && isset($sacerdotes) && $sacerdotes->isNotEmpty())
+                <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-700">
+                            <i class="fas fa-lock-open mr-1 text-purple-600"></i>
+                            Estado de las agendas del día
+                        </h3>
+                        <a href="{{ route('agendas.index', ['fecha' => $fechaSeleccionada->format('Y-m-d')]) }}"
+                           class="text-xs text-purple-600 hover:text-purple-800">
+                            Gestionar agendas <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @foreach($sacerdotes as $sacerdote)
+                            @php
+                                $agenda = $agendasDelDia[$sacerdote->id] ?? null;
+                                $abierta = $agenda && $agenda->estaAbierta();
+                            @endphp
+
+                            <div class="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
+                                <div>
+                                    <p class="font-medium text-gray-800 text-sm">{{ $sacerdote->nombre_completo }}</p>
+                                    <p class="text-xs text-gray-500">{{ $sacerdote->rol_texto }}</p>
+
+                                    @if($agenda)
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            Jornada:
+                                            {{ \Carbon\Carbon::parse($agenda->hora_inicio)->format('g:i A') }}
+                                            -
+                                            {{ \Carbon\Carbon::parse($agenda->hora_fin)->format('g:i A') }}
+                                        </p>
+                                    @else
+                                        <p class="text-xs text-gray-400 mt-1">Sin agenda registrada.</p>
+                                    @endif
+                                </div>
+
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{ $abierta ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    <i class="fas {{ $abierta ? 'fa-lock-open' : 'fa-lock' }} mr-1"></i>
+                                    {{ $abierta ? 'Abierta' : 'Cerrada' }}
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <p class="text-xs text-gray-400 mt-3">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Las agendas cerradas no permiten registrar nuevas citas, pero las citas ya existentes se mantienen.
+                    </p>
+                </div>
+            @endif
+
             <!-- Agenda diaria estilo tabla -->
             <div class="overflow-x-auto">
                 <div class="min-w-full border border-gray-300 rounded-lg overflow-hidden">
-                    
+
                     <!-- Encabezado de la agenda -->
                     <div class="grid grid-cols-[100px_1fr] bg-gray-50 border-b border-gray-300">
                         <div class="px-4 py-3 border-r border-gray-300 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -256,14 +310,14 @@
         function toggleDetalleCita(id) {
             const elemento = document.getElementById(id);
             if (!elemento) return;
-            
+
             // Cerrar otros desplegables abiertos
             document.querySelectorAll('[id^="detalle-cita-"]').forEach(el => {
                 if (el.id !== id && !el.classList.contains('hidden')) {
                     el.classList.add('hidden');
                 }
             });
-            
+
             elemento.classList.toggle('hidden');
         }
     </script>

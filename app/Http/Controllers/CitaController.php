@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AgendaSacerdote;
 use App\Models\Cita;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class CitaController extends Controller
 {
@@ -15,6 +17,100 @@ class CitaController extends Controller
     private function esAdmin(): bool
     {
         return Auth::check() && Auth::user()->esAdministrador();
+    }
+
+    private function calcularHoraFin(string $horaInicio, int $duracionMinutos): string
+    {
+        return Carbon::parse($horaInicio)
+            ->addMinutes($duracionMinutos)
+            ->format('H:i:s');
+    }
+
+    private function estaDentroDeJornada(string $horaInicio, string $horaFin): bool
+    {
+        $inicioJornada = Carbon::parse('15:00:00');
+        $finJornada = Carbon::parse('18:00:00');
+
+        $inicio = Carbon::parse($horaInicio);
+        $fin = Carbon::parse($horaFin);
+
+        return $inicio->greaterThanOrEqualTo($inicioJornada)
+            && $fin->lessThanOrEqualTo($finJornada);
+    }
+
+    private function existeCruceHorario(
+        int $sacerdoteId,
+        string $fecha,
+        string $horaInicio,
+        string $horaFin,
+        ?int $citaId = null
+    ): bool {
+        return Cita::where('sacerdote_id', $sacerdoteId)
+            ->whereDate('fecha', $fecha)
+            ->where('estado', '!=', 'cancelada')
+            ->when($citaId, function ($query) use ($citaId) {
+                $query->where('id', '!=', $citaId);
+            })
+            ->where(function ($query) use ($horaInicio, $horaFin) {
+                $query->where('hora', '<', $horaFin)
+                    ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
+    }
+
+    /**
+     * Verifica si la agenda del sacerdote para esa fecha está abierta.
+     */
+    private function agendaEstaAbierta(int $sacerdoteId, string $fecha): bool
+    {
+        return AgendaSacerdote::where('sacerdote_id', $sacerdoteId)
+            ->whereDate('fecha', $fecha)
+            ->where('estado', 'abierta')
+            ->exists();
+    }
+
+    private function obtenerHorariosDisponibles($sacerdoteId, $fecha, int $duracionConsulta = 20)
+    {
+        if (!$sacerdoteId || !$fecha) {
+            return [];
+        }
+
+        $inicioJornada = Carbon::parse('15:00:00');
+        $finJornada = Carbon::parse('18:00:00');
+
+        // Cada opción inicia cada 15 minutos
+        $intervaloEntreOpciones = 15;
+
+        $horarios = [];
+
+        while ($inicioJornada->copy()->addMinutes($duracionConsulta)->lessThanOrEqualTo($finJornada)) {
+            $horaInicio = $inicioJornada->format('H:i:s');
+            $horaFin = $inicioJornada->copy()->addMinutes($duracionConsulta)->format('H:i:s');
+
+            $citaOcupada = Cita::with('feligres')
+                ->where('sacerdote_id', $sacerdoteId)
+                ->whereDate('fecha', $fecha)
+                ->where('estado', '!=', 'cancelada')
+                ->where(function ($query) use ($horaInicio, $horaFin) {
+                    $query->where('hora', '<', $horaFin)
+                        ->where('hora_fin', '>', $horaInicio);
+                })
+                ->first();
+
+            $horarios[] = [
+                'hora_inicio' => $horaInicio,
+                'hora_fin' => $horaFin,
+                'duracion' => $duracionConsulta,
+                'ocupado' => $citaOcupada !== null,
+                'feligres_nombre' => $citaOcupada?->feligres?->nombre_completo,
+                'tipo_cita' => $citaOcupada?->tipo_texto,
+                'estado_cita' => $citaOcupada?->estado,
+            ];
+
+            $inicioJornada->addMinutes($intervaloEntreOpciones);
+        }
+
+        return $horarios;
     }
 
     /**
@@ -92,8 +188,9 @@ class CitaController extends Controller
      * Muestra el formulario para crear cita.
      * - Admin: puede seleccionar cualquier feligrés.
      * - Feligres: solo puede crear cita para sí mismo.
+     * - Si la agenda del sacerdote está cerrada para esa fecha, se muestra aviso.
      */
-    public function create()
+    public function create(Request $request)
     {
         $usuario = Auth::user();
 
@@ -102,8 +199,6 @@ class CitaController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Para reutilizar la vista actual sin romperla:
-            // el feligrés solo tendrá disponible su propio registro.
             $feligreses = User::where('id', $usuario->id)->get();
         }
 
@@ -111,7 +206,45 @@ class CitaController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('citas.create', compact('feligreses', 'sacerdotes'));
+        $sacerdoteSeleccionado = $request->input(
+            'sacerdote_id',
+            $sacerdotes->first()->id ?? null
+        );
+
+        $fechaSeleccionada = $request->input(
+            'fecha',
+            now()->toDateString()
+        );
+
+        $duracionSeleccionada = (int) $request->input('duracion_minutos', 20);
+
+        $agendaAbierta = false;
+        $horarios = [];
+
+        if ($sacerdoteSeleccionado && $fechaSeleccionada) {
+            $agendaAbierta = $this->agendaEstaAbierta(
+                (int) $sacerdoteSeleccionado,
+                $fechaSeleccionada
+            );
+
+            if ($agendaAbierta) {
+                $horarios = $this->obtenerHorariosDisponibles(
+                    $sacerdoteSeleccionado,
+                    $fechaSeleccionada,
+                    $duracionSeleccionada
+                );
+            }
+        }
+
+        return view('citas.create', compact(
+            'feligreses',
+            'sacerdotes',
+            'horarios',
+            'sacerdoteSeleccionado',
+            'fechaSeleccionada',
+            'duracionSeleccionada',
+            'agendaAbierta'
+        ));
     }
 
     /**
@@ -119,6 +252,7 @@ class CitaController extends Controller
      * - Admin: puede crear para cualquier feligrés.
      * - Feligres: solo crea para sí mismo.
      * - Estado por defecto: pendiente
+     * - Bloquea si la agenda del sacerdote está cerrada para esa fecha.
      */
     public function store(Request $request)
     {
@@ -127,7 +261,8 @@ class CitaController extends Controller
         $rules = [
             'sacerdote_id' => 'required|exists:users,id',
             'fecha' => 'required|date',
-            'hora' => 'required',
+            'hora' => 'required|date_format:H:i',
+            'duracion_minutos' => 'required|integer|in:10,15,20,30',
             'tipo' => 'required|in:confesion,bautismo,matrimonio,orientacion',
             'descripcion' => 'nullable|string',
         ];
@@ -143,26 +278,56 @@ class CitaController extends Controller
 
         $validated = $request->validate($rules);
 
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
+
         // Si NO es admin, la cita siempre queda asociada al usuario autenticado
         if (!$this->esAdmin()) {
             $validated['feligres_id'] = $usuario->id;
             unset($validated['notas_internas']);
         }
 
-        // Verificar si ya existe una cita en la misma fecha y hora
-        // (cualquier estado excepto cancelada)
-        $citaExistente = Cita::where('fecha', $request->fecha)
-            ->where('hora', $request->hora)
-            ->where('estado', '!=', 'cancelada')
-            ->first();
-
-        if ($citaExistente) {
+        // 1) Agenda debe estar abierta para ese sacerdote y esa fecha
+        if (!$this->agendaEstaAbierta((int) $validated['sacerdote_id'], $validated['fecha'])) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'hora' => 'Ya existe una cita programada en esta fecha y hora (estado: ' . $citaExistente->estado . '). Por favor seleccione otro horario.'
+                    'hora' => 'La agenda del sacerdote está cerrada para esa fecha. No se pueden registrar nuevas citas.'
                 ]);
         }
+
+        $horaInicio = $validated['hora'];
+        $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
+
+        // 2) Dentro de la jornada 15:00 - 18:00
+        if (!$this->estaDentroDeJornada($horaInicio, $horaFin)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'La cita debe estar dentro del horario de atención: 3:00 PM a 6:00 PM.'
+                ]);
+        }
+
+        // 3) Sin cruces con otras citas del mismo sacerdote
+        if ($this->existeCruceHorario(
+            (int) $validated['sacerdote_id'],
+            $validated['fecha'],
+            $horaInicio,
+            $horaFin
+        )) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'El sacerdote ya tiene una cita programada dentro de ese rango horario. Por favor seleccione otro horario.'
+                ]);
+        }
+
+        $validated['hora_fin'] = $horaFin;
 
         // Siempre inicia como pendiente
         $validated['estado'] = 'pendiente';
@@ -191,12 +356,19 @@ class CitaController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('citas.edit', compact('cita', 'feligreses', 'sacerdotes'));
+        $agendaAbierta = $this->agendaEstaAbierta(
+            (int) $cita->sacerdote_id,
+            Carbon::parse($cita->fecha)->toDateString()
+        );
+
+        return view('citas.edit', compact('cita', 'feligreses', 'sacerdotes', 'agendaAbierta'));
     }
 
     /**
      * Actualiza una cita.
      * SOLO admin.
+     * - No bloquea la edición normal de una cita existente.
+     * - Solo bloquea si se intenta mover a una fecha/sacerdote con agenda cerrada.
      */
     public function update(Request $request, Cita $cita)
     {
@@ -208,28 +380,64 @@ class CitaController extends Controller
             'feligres_id' => 'required|exists:users,id',
             'sacerdote_id' => 'required|exists:users,id',
             'fecha' => 'required|date',
-            'hora' => 'required',
+            'hora' => 'required|date_format:H:i',
+            'duracion_minutos' => 'required|integer|in:10,15,20,30',
             'tipo' => 'required|in:confesion,bautismo,matrimonio,orientacion',
             'descripcion' => 'nullable|string',
             'estado' => 'required|in:pendiente,confirmada,cancelada,completada',
             'notas_internas' => 'nullable|string',
         ]);
 
-        // Verificar si ya existe OTRA cita en la misma fecha y hora
-        // (excluyendo la actual, cualquier estado excepto cancelada)
-        $citaExistente = Cita::where('fecha', $request->fecha)
-            ->where('hora', $request->hora)
-            ->where('id', '!=', $cita->id)
-            ->where('estado', '!=', 'cancelada')
-            ->first();
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
 
-        if ($citaExistente) {
+        // Detectar si la cita cambia de sacerdote o de fecha
+        $mismaFecha = Carbon::parse($cita->fecha)->toDateString()
+            === Carbon::parse($validated['fecha'])->toDateString();
+
+        $mismoSacerdote = (int) $cita->sacerdote_id === (int) $validated['sacerdote_id'];
+
+        // Solo si cambia de sacerdote o fecha, se exige que la agenda esté abierta
+        if ((!$mismaFecha || !$mismoSacerdote)
+            && !$this->agendaEstaAbierta((int) $validated['sacerdote_id'], $validated['fecha'])) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'hora' => 'Ya existe otra cita programada en esta fecha y hora (estado: ' . $citaExistente->estado . '). Por favor seleccione otro horario.'
+                    'fecha' => 'No se puede mover esta cita: la agenda del sacerdote está cerrada para esa fecha.'
                 ]);
         }
+
+        $horaInicio = $validated['hora'];
+        $horaFin = $this->calcularHoraFin($horaInicio, (int) $validated['duracion_minutos']);
+
+        if (!$this->estaDentroDeJornada($horaInicio, $horaFin)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'La cita debe estar dentro del horario de atención: 3:00 PM a 6:00 PM.'
+                ]);
+        }
+
+        if ($this->existeCruceHorario(
+            (int) $validated['sacerdote_id'],
+            $validated['fecha'],
+            $horaInicio,
+            $horaFin,
+            $cita->id
+        )) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora' => 'El sacerdote ya tiene otra cita programada dentro de ese rango horario. Por favor seleccione otro horario.'
+                ]);
+        }
+
+        $validated['hora_fin'] = $horaFin;
 
         $cita->update($validated);
 
