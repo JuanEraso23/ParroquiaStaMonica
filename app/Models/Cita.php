@@ -14,6 +14,8 @@ class Cita extends Model
         'sacerdote_id',
         'fecha',
         'hora',
+        'duracion_minutos',
+        'hora_fin',
         'tipo',
         'descripcion',
         'estado',
@@ -22,7 +24,6 @@ class Cita extends Model
 
     protected $casts = [
         'fecha' => 'date',
-        'hora' => 'datetime:H:i',
     ];
 
     // Relaciones
@@ -45,6 +46,7 @@ class Cita extends Model
             'matrimonio' => 'Matrimonio',
             'orientacion' => 'Orientación',
         ];
+
         return $tipos[$this->tipo] ?? ucfirst($this->tipo);
     }
 
@@ -56,11 +58,28 @@ class Cita extends Model
             'cancelada' => 'bg-red-100 text-red-800',
             'completada' => 'bg-blue-100 text-blue-800',
         ];
+
         return $badges[$this->estado] ?? 'bg-gray-100 text-gray-800';
     }
 
     public function getHoraFormateadaAttribute()
     {
         return \Carbon\Carbon::parse($this->hora)->format('g:i A');
+    }
+
+    public function getHoraFinFormateadaAttribute()
+    {
+        return $this->hora_fin
+            ? \Carbon\Carbon::parse($this->hora_fin)->format('g:i A')
+            : null;
+    }
+
+    public function getHorarioCompletoAttribute()
+    {
+        if (!$this->hora_fin) {
+            return $this->hora_formateada;
+        }
+
+        return $this->hora_formateada . ' - ' . $this->hora_fin_formateada;
     }
 }

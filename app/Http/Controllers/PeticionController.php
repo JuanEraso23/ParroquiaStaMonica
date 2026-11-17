@@ -7,6 +7,7 @@ use App\Models\Peticion;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class PeticionController extends Controller
 {
@@ -152,6 +153,27 @@ class PeticionController extends Controller
 
         $validated = $request->validate($rules);
 
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
+
+        // --- VALIDACIÓN: HORA LÍMITE PARA HOY (Feligreses) ---
+        if (!$this->esAdmin()) {
+            $fechaPeticion = $validated['fecha'];
+            $horaActual = Carbon::now();
+            $limiteHoy = Carbon::today()->setHour(17)->setMinute(30)->setSecond(0);
+
+            if (Carbon::parse($fechaPeticion)->isToday() && $horaActual->greaterThan($limiteHoy)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['fecha' => 'El plazo para registrar peticiones para la misa de hoy vence a las 5:30 PM. Por favor, selecciona la fecha de mañana o un día posterior.']);
+            }
+        }
+
         if (!$this->esAdmin()) {
             $validated['feligres_id'] = $usuario->id;
         }
@@ -211,6 +233,14 @@ class PeticionController extends Controller
             'estado' => 'required|in:pendiente,aprobada,completada,rechazada',
             'respuesta' => 'nullable|string',
         ]);
+
+        // --- NUEVA VALIDACIÓN: PROHIBIR LUNES (AL EDITAR) ---
+        if (Carbon::parse($validated['fecha'])->isMonday()) {
+            return back()
+                ->withInput()
+                ->withErrors(['fecha' => 'Los días lunes no hay atención al público ni misa. Por favor, selecciona otro día.']);
+        }
+        // ----------------------------------------
 
         $peticione->update($validated);
 

@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -12,6 +12,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="font-sans antialiased bg-gray-100">
@@ -25,6 +26,7 @@
 
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
 
+    <!-- Sidebar (menú vertical) -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-profile">
             <div class="sidebar-avatar">
@@ -57,6 +59,16 @@
                 </a>
             @endif
 
+            <!-- Agendas: SOLO admin -->
+            @if($esAdmin)
+                @if(Route::has('agendas.index'))
+                    <a href="{{ route('agendas.index') }}" class="sidebar-nav-item {{ request()->routeIs('agendas.*') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-plus"></i> Agendas
+                    </a>
+                @endif
+            @endif
+
+            <!-- Usuarios: SOLO admin -->
             @if($esAdmin)
                 <a href="{{ route('usuarios.index') }}"
                    class="sidebar-nav-item {{ request()->routeIs('usuarios.*') ? 'active' : '' }}">
@@ -70,6 +82,12 @@
                     <i class="fas fa-user"></i> Mi Perfil
                 </a>
             @endif
+
+            {{-- Centro de Ayuda - visible para todos los usuarios --}}
+            <a href="{{ route('ayuda.index') }}"
+               class="sidebar-nav-item {{ request()->routeIs('ayuda.*') ? 'active' : '' }}">
+                <i class="fas fa-circle-info"></i> Ayuda
+            </a>
         </div>
     </div>
 
@@ -114,8 +132,8 @@
                 <p>
                     Juan Sebastián Coronado Parra |
                     Juan Manuel Eraso Grijalba |
-                    Diego Fernando Escobar Enríquez |
-                    Jaider Andrés Narváez Cabrera |
+                    Diego Fernando Escobar Enriquez |
+                    Jaider Andrés Narvaéz Cabrera |
                     David Esteban Ortiz Ortiz
                 </p>
             </div>

@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AyudaController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\AgendaSacerdoteController;
 use App\Http\Controllers\PeticionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UsuarioController;
@@ -81,6 +83,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/horarios/{fecha}', [HorarioController::class, 'dia'])
         ->name('horarios.dia');
+
+    /**
+     * Agendas de sacerdotes - apertura y cierre diario
+     */
+    Route::get('agendas', [AgendaSacerdoteController::class, 'index'])
+        ->name('agendas.index');
+
+    Route::post('agendas/abrir', [AgendaSacerdoteController::class, 'abrir'])
+        ->name('agendas.abrir');
+
+    Route::patch('agendas/{agenda}/cerrar', [AgendaSacerdoteController::class, 'cerrar'])
+        ->name('agendas.cerrar');
+    /**
+     * Ayuda - centro de ayuda y manuales internos.
+     */
+    Route::get('/ayuda', [AyudaController::class, 'index'])
+        ->name('ayuda.index');
 });
 
 /**

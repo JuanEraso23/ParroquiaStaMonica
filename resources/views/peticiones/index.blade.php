@@ -11,13 +11,14 @@
     <div class="p-6">
 
         <!-- Encabezado -->
-        <div class="flex justify-between items-start mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
             <div>
-                <h1 class="text-2xl font-semibold text-gray-800">
+                <h1 class="text-2xl md:text-3xl font-semibold text-gray-800">
+                    <i class="fas fa-hands-praying text-blue-600"></i>
                     {{ $esAdmin ? 'Peticiones' : 'Mis Peticiones' }}
                 </h1>
 
-                <p class="text-gray-500 text-sm mt-1">
+                <p class="text-gray-600 text-base mt-1">
                     {{ $esAdmin
                         ? 'Gestione las peticiones registradas por los feligreses'
                         : 'Consulta y registra tus peticiones personales' }}
@@ -26,23 +27,23 @@
 
             <div class="flex gap-2">
                 <a href="{{ route('peticiones.create') }}"
-                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition">
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg text-base transition flex items-center gap-2 font-medium">
                     <i class="fas fa-plus"></i>
-                    {{ $esAdmin ? 'Nueva Petición' : 'Crear Petición' }}
+                    {{ $esAdmin ? 'Crear Nueva Petición' : 'Enviar Nueva Petición' }}
                 </a>
             </div>
         </div>
 
         <!-- Mensajes -->
         @if(session('success'))
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded">
-                {{ session('success') }}
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-800 p-4 mb-6 rounded text-base">
+                <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
             </div>
         @endif
 
         @if(session('error'))
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
-                {{ session('error') }}
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded text-base">
+                <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
             </div>
         @endif
 
@@ -51,26 +52,26 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Buscar
+                    <label class="block text-base font-medium text-gray-700 mb-1">
+                        <i class="fas fa-search text-gray-500 mr-1"></i> Buscar
                     </label>
 
                     <input
                         type="text"
                         name="search"
                         value="{{ request('search') }}"
-                        placeholder="Buscar por título, descripción o feligrés..."
-                        class="w-full rounded-lg border-gray-300"
+                        placeholder="Título, descripción o feligrés..."
+                        class="w-full rounded-lg border-gray-300 text-base py-2 px-3"
                     >
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Categoría
+                    <label class="block text-base font-medium text-gray-700 mb-1">
+                        <i class="fas fa-tag text-gray-500 mr-1"></i> Categoría
                     </label>
 
-                    <select name="categoria_peticion_id" class="w-full rounded-lg border-gray-300">
-                        <option value="">Todas</option>
+                    <select name="categoria_peticion_id" class="w-full rounded-lg border-gray-300 text-base py-2 px-3">
+                        <option value="">-- Todas --</option>
 
                         @foreach($categorias as $categoria)
                             <option value="{{ $categoria->id }}" {{ request('categoria_peticion_id') == $categoria->id ? 'selected' : '' }}>
@@ -81,12 +82,12 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Estado
+                    <label class="block text-base font-medium text-gray-700 mb-1">
+                        <i class="fas fa-info-circle text-gray-500 mr-1"></i> Estado
                     </label>
 
-                    <select name="estado" class="w-full rounded-lg border-gray-300">
-                        <option value="">Todos</option>
+                    <select name="estado" class="w-full rounded-lg border-gray-300 text-base py-2 px-3">
+                        <option value="">-- Todos --</option>
                         <option value="pendiente" {{ request('estado') == 'pendiente' ? 'selected' : '' }}>
                             Pendiente
                         </option>
@@ -105,10 +106,10 @@
                 <div class="flex items-end">
                     <button
                         type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition w-full"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-base transition w-full flex items-center justify-center gap-2 font-medium"
                     >
-                        <i class="fas fa-search"></i>
-                        Filtrar
+                        <i class="fas fa-filter"></i>
+                        Aplicar Filtros
                     </button>
                 </div>
 
@@ -117,7 +118,7 @@
             @if(request()->hasAny(['search', 'estado', 'categoria_peticion_id']))
                 <div class="mt-3 text-right">
                     <a href="{{ route('peticiones.index') }}"
-                       class="text-sm text-gray-500 hover:text-gray-700">
+                       class="text-base text-gray-600 hover:text-gray-800 underline">
                         <i class="fas fa-eraser"></i>
                         Limpiar filtros
                     </a>
@@ -125,46 +126,48 @@
             @endif
         </form>
 
+        <!-- Contador -->
+        <div class="mb-3 text-base text-gray-600">
+            <i class="fas fa-list text-gray-500 mr-1"></i>
+            Mostrando {{ $items->firstItem() ?? 0 }} a {{ $items->lastItem() ?? 0 }} de {{ $items->total() }} peticiones
+        </div>
+
         <!-- Tabla -->
         <div class="overflow-x-auto">
-            <div class="mb-3 text-sm text-gray-500">
-                Mostrando {{ $items->firstItem() ?? 0 }} a {{ $items->lastItem() ?? 0 }} de {{ $items->total() }} peticiones
-            </div>
-
             <table class="min-w-full">
                 <thead class="bg-gray-50">
                     <tr>
                         @if($esAdmin)
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                                 Feligrés
                             </th>
                         @endif
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Categoría
                         </th>
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Título
                         </th>
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Descripción
                         </th>
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Fecha
                         </th>
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Sacerdote
                         </th>
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Estado
                         </th>
 
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase">
                             Acciones
                         </th>
                     </tr>
@@ -179,68 +182,72 @@
                         <tr class="hover:bg-gray-50">
                             @if($esAdmin)
                                 <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 text-base">
+                                        <i class="fas fa-user text-gray-400 mr-1"></i>
                                         {{ $item->feligres->nombre_completo ?? 'Sin feligrés' }}
                                     </div>
                                 </td>
                             @endif
 
                             <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
+                                <span class="px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-800 font-medium">
                                     {{ $item->categoria->nombre ?? 'Sin categoría' }}
                                 </span>
                             </td>
 
                             <td class="px-4 py-3">
-                                <div class="text-sm font-medium text-gray-700">
+                                <div class="text-base font-medium text-gray-800">
                                     {{ $item->titulo }}
                                 </div>
                             </td>
 
                             <td class="px-4 py-3">
-                                <div class="text-sm text-gray-600 max-w-xs truncate">
+                                <div class="text-base text-gray-700 max-w-xs truncate" title="{{ $item->descripcion }}">
                                     {{ $item->descripcion }}
                                 </div>
                             </td>
 
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                            <td class="px-4 py-3 text-base text-gray-700">
+                                <i class="fas fa-calendar text-gray-400 mr-1"></i>
                                 {{ $item->fecha ? $item->fecha->format('d/m/Y') : 'Sin fecha' }}
                             </td>
 
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                            <td class="px-4 py-3 text-base text-gray-700">
                                 {{ $item->sacerdote ? $item->sacerdote->nombre_completo : 'No asignado' }}
                             </td>
 
                             <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full {{ $item->estado_badge }}">
+                                <span class="px-3 py-1 text-sm rounded-full {{ $item->estado_badge }} font-medium">
                                     {{ ucfirst($item->estado) }}
                                 </span>
                             </td>
 
                             <td class="px-4 py-3">
-                                <div class="flex items-center space-x-3">
+                                <div class="flex items-center gap-3">
                                     @if($esAdmin)
                                         <a href="{{ route('peticiones.edit', $item->id) }}"
-                                           class="text-yellow-600 hover:text-yellow-800"
-                                           title="Editar petición">
+                                           class="text-yellow-700 hover:text-yellow-900 hover:bg-yellow-50 flex items-center gap-1 px-2 py-1 rounded transition text-base font-medium"
+                                           title="Editar esta petición">
                                             <i class="fas fa-edit"></i>
+                                            <span>Editar</span>
                                         </a>
 
                                         <form
                                             action="{{ route('peticiones.destroy', $item->id) }}"
                                             method="POST"
                                             class="inline-block"
-                                            onsubmit="return confirm('¿Eliminar esta petición?')"
+                                            onsubmit="return confirm('¿Estás seguro de eliminar esta petición?\n\nTítulo: {{ addslashes($item->titulo) }}\nFecha: {{ $item->fecha ? $item->fecha->format('d/m/Y') : 'Sin fecha' }}\n\nEsta acción no se puede deshacer.');"
                                         >
                                             @csrf
                                             @method('DELETE')
 
                                             <button
                                                 type="submit"
-                                                class="text-red-600 hover:text-red-800"
-                                                title="Eliminar petición"
+                                                class="text-red-700 hover:text-red-900 hover:bg-red-50 flex items-center gap-1 px-2 py-1 rounded transition text-base font-medium"
+                                                title="Eliminar esta petición"
                                             >
                                                 <i class="fas fa-trash"></i>
+                                                <span>Eliminar</span>
                                             </button>
                                         </form>
                                     @else
@@ -249,22 +256,24 @@
                                                 action="{{ route('peticiones.destroy', $item->id) }}"
                                                 method="POST"
                                                 class="inline-block"
-                                                onsubmit="return confirm('¿Eliminar esta petición pendiente?')"
+                                                onsubmit="return confirm('¿Estás seguro de eliminar esta petición pendiente?\n\nTítulo: {{ addslashes($item->titulo) }}\n\nEsta acción no se puede deshacer.');"
                                             >
                                                 @csrf
                                                 @method('DELETE')
 
                                                 <button
                                                     type="submit"
-                                                    class="text-red-600 hover:text-red-800"
-                                                    title="Eliminar petición pendiente"
+                                                    class="text-red-700 hover:text-red-900 hover:bg-red-50 flex items-center gap-1 px-2 py-1 rounded transition text-base font-medium"
+                                                    title="Eliminar esta petición pendiente"
                                                 >
                                                     <i class="fas fa-trash"></i>
+                                                    <span>Eliminar</span>
                                                 </button>
                                             </form>
                                         @else
-                                            <span class="text-gray-400" title="Este registro no puede modificarse">
+                                            <span class="text-gray-400 flex items-center gap-1 text-base" title="Este registro no puede modificarse">
                                                 <i class="fas fa-lock"></i>
+                                                <span>Bloqueada</span>
                                             </span>
                                         @endif
                                     @endif
@@ -274,11 +283,14 @@
                     @empty
                         <tr>
                             <td colspan="{{ $esAdmin ? 8 : 7 }}" class="px-4 py-8 text-center text-gray-500">
-                                <i class="fas fa-inbox text-4xl mb-2 opacity-50"></i>
-                                <p>
+                                <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
+                                <p class="text-lg">
                                     {{ $esAdmin
                                         ? 'No hay peticiones registradas'
                                         : 'No tienes peticiones registradas' }}
+                                </p>
+                                <p class="text-base text-gray-400 mt-1">
+                                    Cuando registres una petición aparecerá aquí.
                                 </p>
                             </td>
                         </tr>
